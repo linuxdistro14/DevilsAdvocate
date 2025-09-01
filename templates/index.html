@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Digital Card Deck - Two Player Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Navigation Bar -->
+        <nav class="navbar">
+            <div class="nav-menu-container">
+                <button class="nav-menu-btn" id="nav-menu-btn" aria-label="Open menu">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                <div class="nav-dropdown" id="nav-dropdown">
+                    <button id="new-game" class="nav-item" aria-label="Start new game">
+                        <span class="nav-icon">🎮</span> New Game
+                    </button>
+                    <button id="reset-scores" class="nav-item" aria-label="Reset scores">
+                        <span class="nav-icon">🔄</span> Reset Scores
+                    </button>
+                    <button id="shuffle-deck" class="nav-item" aria-label="Shuffle deck">
+                        <span class="nav-icon">🔀</span> Shuffle
+                    </button>
+                    <button id="manage-cards" class="nav-item" aria-label="Manage cards">
+                        <span class="nav-icon">⚙️</span> Manage Cards
+                    </button>
+                    <button id="manage-dare-cards" class="nav-item" aria-label="Manage dare cards">
+                        <span class="nav-icon">🎯</span> Manage Dares
+                    </button>
+                    <button id="add-card" class="nav-item" aria-label="Add new card">
+                        <span class="nav-icon">➕</span> Add Card
+                    </button>
+                    <button id="add-dare-card" class="nav-item" aria-label="Add new dare card">
+                        <span class="nav-icon">🎯➕</span> Add Dare
+                    </button>
+                </div>
+            </div>
+            <h1 class="main-title">
+                <span class="title-icon">😈</span>
+                Devils Advocate
+            </h1>
+            <div class="nav-spacer"></div>
+        </nav>
+
+        <header>
+            <!-- Compact Player Scores Section -->
+            <div class="players-section-compact">
+                <div class="player-card-compact player-1" id="player-1-card">
+                    <div class="player-info-compact">
+                        <input type="text" class="player-name-input-compact" id="player-1-name" value="Player 1" maxlength="15">
+                        <span class="player-indicator-compact" id="player-1-indicator">●</span>
+                    </div>
+                    <div class="player-stats-compact">
+                        <div class="player-score-compact">
+                            <span class="score-value-compact" id="player-1-score">0</span>
+                        </div>
+                        <div class="player-wildcards-compact" id="player-1-wildcards">
+                            <span class="wildcard-count">🃏 <span id="player-1-wildcard-count">0</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="game-info-compact">
+                    <div class="current-turn-compact">
+                        <span class="turn-player-compact" id="current-player">Player 1</span>
+                    </div>
+                    <div class="game-round-compact">
+                        <span class="round-number-compact" id="game-number">1</span>
+                    </div>
+                </div>
+                
+                <div class="player-card-compact player-2" id="player-2-card">
+                    <div class="player-info-compact">
+                        <input type="text" class="player-name-input-compact" id="player-2-name" value="Player 2" maxlength="15">
+                        <span class="player-indicator-compact" id="player-2-indicator">●</span>
+                    </div>
+                    <div class="player-stats-compact">
+                        <div class="player-score-compact">
+                            <span class="score-value-compact" id="player-2-score">0</span>
+                        </div>
+                        <div class="player-wildcards-compact" id="player-2-wildcards">
+                            <span class="wildcard-count">🃏 <span id="player-2-wildcard-count">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+        </header>
+
+        <main class="game-area">
+            <!-- Deck Area -->
+            <div class="deck-section">
+                <h3 class="section-title">Draw Pile</h3>
+                <div class="deck-container">
+                    <div id="card-deck" class="card-deck-large" role="button" tabindex="0" aria-label="Click to draw a card">
+                        <div class="card-stack-effect-large"></div>
+                        <div class="card-stack-effect-large"></div>
+                        <div class="card-back-large">
+                            <div class="card-back-image" id="card-back-image"></div>
+                        </div>
+                    </div>
+                    <p class="instruction-text" id="instruction-text">Click to draw a card</p>
+                </div>
+            </div>
+
+            <!-- Current Card Area -->
+            <div class="current-section">
+                <h3 class="section-title">Current Card</h3>
+                <div class="flipped-area">
+                    <div id="current-card" class="current-card-large hidden">
+                        <div class="card-front-large">
+                            <div class="card-header-large">
+                                <span class="card-number-large">#<span id="card-id">1</span></span>
+                                <span class="card-type-badge-large"></span>
+                            </div>
+                            <h2 class="card-title-large"></h2>
+                            <div class="card-content-large"></div>
+                            <div class="card-footer-large">
+                                <div class="card-score-info-large">
+                                    <span class="card-score-label-large">Points:</span>
+                                    <span class="card-score-value-large" id="card-score">0</span>
+                                </div>
+                                <span class="card-level-large"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="action-buttons" class="action-buttons hidden">
+                        <button id="skip-btn" class="btn btn-skip" aria-label="Skip this card">
+                            <span class="btn-icon">⏭️</span> Skip (0 pts)
+                        </button>
+                        <button id="done-btn" class="btn btn-done" aria-label="Mark card as done">
+                            <span class="btn-icon">✅</span> Done (<span id="done-points">0</span> pts)
+                        </button>
+                    </div>
+
+                    <!-- Dare Card Forced Action -->
+                    <div id="dare-action-buttons" class="action-buttons dare-actions hidden">
+                        <button id="complete-dare-btn" class="btn btn-complete-dare" aria-label="Complete dare">
+                            <span class="btn-icon">💪</span> Complete Dare
+                        </button>
+                    </div>
+
+                    <!-- Wildcard Action Buttons -->
+                    <div id="wildcard-action-buttons" class="action-buttons wildcard-actions hidden">
+                        <button id="use-wildcard-btn" class="btn btn-use-wildcard" aria-label="Use wildcard on opponent">
+                            <span class="btn-icon">🎯</span> Use on Opponent
+                        </button>
+                        <button id="save-wildcard-btn" class="btn btn-save-wildcard" aria-label="Save wildcard for later">
+                            <span class="btn-icon">💾</span> Save for Later
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Cards Stack -->
+            <div class="completed-section">
+                <h3 class="section-title">Played Pile</h3>
+                <div class="completed-container">
+                    <div id="completed-stack" class="completed-stack-large">
+                        <div id="completed-cards-pile" class="completed-cards-pile-large">
+                            <!-- Face-up cards will be stacked here -->
+                        </div>
+                        <div class="completed-info-large">
+                            <span class="completed-count-large">0</span>
+                            <span class="completed-label-large">played</span>
+                        </div>
+                    </div>
+                    <div id="empty-completed" class="empty-state">
+                        <span class="empty-icon">📦</span>
+                        <p>No played cards yet</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Wildcard Collection Modal -->
+        <div id="wildcard-collection-modal" class="modal hidden">
+            <div class="modal-content">
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+                <h2>Your Wild Cards</h2>
+                <div id="wildcard-list" class="wildcard-list"></div>
+                <div class="modal-actions">
+                    <button class="btn btn-close-modal">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Card Modal -->
+        <div id="card-modal" class="modal hidden">
+            <div class="modal-content">
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+                <h2 id="modal-title">Add New Card</h2>
+                <form id="card-form">
+                    <div class="form-group">
+                        <label for="card-title-input">Title *</label>
+                        <input type="text" id="card-title-input" placeholder="Enter card title" required maxlength="50">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="card-content-input">Content *</label>
+                        <textarea id="card-content-input" placeholder="Enter card content" required maxlength="300"></textarea>
+                        <span class="char-count"><span id="char-current">0</span>/300</span>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="card-type-input">Type</label>
+                            <select id="card-type-input">
+                                <option value="truth">💭 Truth</option>
+                                <option value="dare">🎯 Dare</option>
+                                <option value="never_ever">🚫 Never Ever</option>
+                                <option value="kink">🔥 Kink</option>
+                                <option value="wild_card">🃏 Wild Card</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="card-level-input">Level</label>
+                            <select id="card-level-input">
+                                <option value="level 1">Level 1</option>
+                                <option value="level 2">Level 2</option>
+                                <option value="level 3">Level 3</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="card-color-input">Color</label>
+                            <div class="color-picker-wrapper">
+                                <input type="color" id="card-color-input" value="#4CAF50">
+                                <span id="color-hex">#4CAF50</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-cancel">Cancel</button>
+                        <button type="submit" class="btn btn-submit">Add Card</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add/Edit Dare Card Modal -->
+        <div id="dare-card-modal" class="modal hidden">
+            <div class="modal-content">
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+                <h2 id="dare-modal-title">Add New Dare Card</h2>
+                <form id="dare-card-form">
+                    <div class="form-group">
+                        <label for="dare-card-title-input">Title *</label>
+                        <input type="text" id="dare-card-title-input" placeholder="Enter dare card title" required maxlength="50">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dare-card-content-input">Dare Content *</label>
+                        <textarea id="dare-card-content-input" placeholder="Enter dare instructions" required maxlength="300"></textarea>
+                        <span class="char-count"><span id="dare-char-current">0</span>/300</span>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dare-card-difficulty-input">Difficulty</label>
+                            <select id="dare-card-difficulty-input">
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                                <option value="extreme">Extreme</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="dare-card-color-input">Color</label>
+                            <div class="color-picker-wrapper">
+                                <input type="color" id="dare-card-color-input" value="#FF9800">
+                                <span id="dare-color-hex">#FF9800</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-cancel">Cancel</button>
+                        <button type="submit" class="btn btn-submit">Add Dare Card</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Card Management Modal -->
+        <div id="manage-modal" class="modal hidden">
+            <div class="modal-content modal-wide">
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+                <h2>Manage Cards</h2>
+                <div class="manage-controls">
+                    <input type="text" id="search-cards" placeholder="Search cards..." class="search-input">
+                    <select id="filter-type" class="filter-select">
+                        <option value="">All Types</option>
+                        <option value="truth">Truth</option>
+                        <option value="dare">Dare</option>
+                        <option value="never_ever">Never Ever</option>
+                        <option value="kink">Kink</option>
+                        <option value="wild_card">Wild Card</option>
+                    </select>
+                </div>
+                <div id="cards-list" class="cards-list"></div>
+            </div>
+        </div>
+
+        <!-- Dare Card Management Modal -->
+        <div id="manage-dare-modal" class="modal hidden">
+            <div class="modal-content modal-wide">
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+                <h2>Manage Dare Cards</h2>
+                <div class="manage-controls">
+                    <input type="text" id="search-dare-cards" placeholder="Search dare cards..." class="search-input">
+                    <select id="filter-difficulty" class="filter-select">
+                        <option value="">All Difficulties</option>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="extreme">Extreme</option>
+                    </select>
+                </div>
+                <div id="dare-cards-list" class="cards-list"></div>
+            </div>
+        </div>
+
+        <!-- Winner Modal -->
+        <div id="winner-modal" class="modal hidden">
+            <div class="modal-content winner-content">
+                <h2 class="winner-title">🏆 Game Over! 🏆</h2>
+                <div class="winner-info">
+                    <div class="winner-name" id="winner-name">Player 1 Wins!</div>
+                    <div class="final-scores">
+                        <div class="final-score-item">
+                            <span id="final-player-1-name">Player 1</span>: 
+                            <span id="final-player-1-score">0</span> points
+                        </div>
+                        <div class="final-score-item">
+                            <span id="final-player-2-name">Player 2</span>: 
+                            <span id="final-player-2-score">0</span> points
+                        </div>
+                    </div>
+                </div>
+                <div class="winner-actions">
+                    <button class="btn btn-new-game-modal">Start New Game</button>
+                    <button class="btn btn-close-modal">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="toast hidden">
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
