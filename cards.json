@@ -33,7 +33,7 @@
     {
       "id": 4,
       "title": "Room Fantasy",
-      "content": "Have you ever fantasized about someone in this room? What was it?",
+      "content": "Have you ever fantasized about someone we know?, who was it? what was the fantasy?",
       "type": "truth",
       "level": "level 2",
       "color": "#4CAF50",
@@ -1589,6 +1589,335 @@
       "color": "#2196F3",
       "difficulty": "hard",
       "scoreValue": 4
+	},
+    {
+      "id": 160,
+      "title": "Heat Up Dare",
+      "content": "Turn up the heat for your partner with a 'Dare' at any time during the game",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 161,
+      "title": "Bedroom Challenge Dare",
+      "content": "Challenge your partner to a sexual dare of your choosing in the bedroom - they cannot refuse",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 162,
+      "title": "Instant Naughty Dare",
+      "content": "Turn up the heat for your partner with a 'Dare' at any time during the game",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 163,
+      "title": "Custom Fantasy Dare",
+      "content": "Design a personalized sexual dare based on your partner's kinks and limits",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 164,
+      "title": "Double Pleasure Dare",
+      "content": "Give your partner two sexual dares - they must complete both within the next hour",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 165,
+      "title": "Truth to Action Dare",
+      "content": "Convert any truth question into a sexual dare challenge of your choosing",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 166,
+      "title": "The Aphrodisiac Chef Card",
+      "content": "Your partner must prepare an aphrodisiac meal while wearing only an apron - feeding you by hand",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 167,
+      "title": "The Sexy Stylist Card",
+      "content": "Dress your partner in the most seductive outfit you can create - they wear it for 24 hours",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 168,
+      "title": "The Sensual Spa Card",
+      "content": "Your partner becomes your nude masseuse for a full-body oil massage with happy ending",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 169,
+      "title": "The Kink Explorer Card",
+      "content": "Introduce your partner to your favorite kink - they must participate enthusiastically",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 170,
+      "title": "The T-Minus Naked Card",
+      "content": "Your partner has 10 minutes to strip, shower, and present themselves to you however you desire",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 171,
+      "title": "The Oral Fixation Card",
+      "content": "Trade oral favors - when they finish you, you owe them the same treatment back",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 172,
+      "title": "The Private Dancer Card",
+      "content": "Your partner performs a full striptease and lap dance to at least 3 songs of your choice",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 173,
+      "title": "The Naked Punishment Card",
+      "content": "Strip your partner completely - they stay nude until they've earned their clothes back",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 174,
+      "title": "The Sex Slave Card",
+      "content": "Your partner becomes your willing sex slave for 2 hours - fulfilling every desire",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 175,
+      "title": "The Naughty Photo Shoot Card",
+      "content": "Direct your partner in a nude photo session - capturing intimate shots for your collection",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 176,
+      "title": "The Edging Master Card",
+      "content": "Your partner must bring you to the edge of orgasm 3 times before allowing release",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 177,
+      "title": "The Sexting Control Card",
+      "content": "Send dirty messages from your partner's phone to yourself - they must own up to them",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 178,
+      "title": "The Moaning Phone Card",
+      "content": "Your partner must answer their next call while you pleasure them - trying to stay quiet",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 179,
+      "title": "The Wake-Up Call Card",
+      "content": "Your partner must wake you tomorrow with oral sex - no stopping until you're satisfied",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 180,
+      "title": "The Pleasure Playlist Card",
+      "content": "Create a sex playlist - your partner must perform for you during every song",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 181,
+      "title": "The Naked Housework Card",
+      "content": "Your partner does household chores completely nude while you watch and direct",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 182,
+      "title": "The Porn Study Card",
+      "content": "Choose a porn scene - your partner must recreate it exactly with you",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 183,
+      "title": "The Toy Tester Card",
+      "content": "Your partner becomes your willing test subject for any new toys you want to try",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 184,
+      "title": "The Dirty Talk DJ Card",
+      "content": "Your partner must narrate everything they're doing to you in explicit detail",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 185,
+      "title": "The Orgasm Photographer Card",
+      "content": "Capture your partner's orgasm face - they must pose and perform for your camera",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 186,
+      "title": "The Public Tease Card",
+      "content": "Your partner wears a vibrating toy in public while you control it remotely",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 187,
+      "title": "The Bedtime Seduction Card",
+      "content": "Your partner must seduce you every night for a week with different techniques",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 188,
+      "title": "The Fantasy Confession Card",
+      "content": "Your partner must confess and act out their dirtiest fantasy involving you",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 189,
+      "title": "The Blindfold Surprise Card",
+      "content": "Blindfold your partner and use their body however you desire for 30 minutes",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 190,
+      "title": "The Dirty Love Letter Card",
+      "content": "Your partner writes you an explicit letter detailing what they want to do to you",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+    },
+    {
+      "id": 191,
+      "title": "The Creampie Chef Card",
+      "content": "Your partner must 'cook' you a special meal using their body as the serving dish",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
+{
+      "id": 192,
+      "title": "Truth to Action Dare",
+      "content": "Convert any truth question into a sexual dare challenge of your choosing",
+      "type": "wild_card",
+      "level": "level 1",
+      "color": "#9C27B0",
+      "difficulty": "special",
+      "scoreValue": 0
     }
   ]
 }
