@@ -21,6 +21,9 @@
     --player-1-color: #3498db;
     --player-2-color: #e74c3c;
     --wildcard-color: #9C27B0;
+    --level-1-color: #2ecc71;
+    --level-2-color: #f39c12;
+    --level-3-color: #e74c3c;
 }
 
 body {
@@ -168,6 +171,69 @@ body {
     width: 44px;
 }
 
+/* Level Information Section */
+.level-info {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.level-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.level-header h3 {
+    font-size: 1.4em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.target-score {
+    font-size: 1.1em;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.progress-bars {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.player-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.player-progress-label {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.progress-bar-small {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill-small {
+    height: 100%;
+    background: linear-gradient(90deg, var(--level-1-color), var(--success-color));
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
 /* Compact Players Section */
 .players-section-compact {
     display: grid;
@@ -260,6 +326,18 @@ body {
     font-size: 1.8em;
     font-weight: 700;
     color: var(--text-primary);
+}
+
+.player-rounds-compact {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.rounds-label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
 }
 
 .player-wildcards-compact {
@@ -865,6 +943,18 @@ body {
     box-shadow: 0 8px 25px rgba(52, 73, 94, 0.4);
 }
 
+.btn-next-level {
+    background: linear-gradient(135deg, var(--level-2-color), #e67e22);
+    color: white;
+    font-size: 1.2em;
+    padding: 18px 40px;
+}
+
+.btn-next-level:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(243, 156, 18, 0.4);
+}
+
 /* Modal Styles */
 .modal {
     position: fixed;
@@ -950,6 +1040,12 @@ body {
     font-weight: 700;
     margin-bottom: 30px;
     color: var(--text-primary);
+}
+
+.level-complete-info {
+    font-size: 1.2em;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
 }
 
 .final-scores {
@@ -1198,6 +1294,16 @@ body {
     margin-left: 10px;
 }
 
+.card-item-level {
+    display: inline-block;
+    background: var(--text-secondary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    margin-left: 5px;
+}
+
 .card-item-actions {
     display: flex;
     gap: 10px;
@@ -1314,6 +1420,16 @@ body {
     .players-section-compact {
         grid-template-columns: 1fr;
         gap: 15px;
+    }
+    
+    .progress-bars {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .level-header {
+        flex-direction: column;
+        gap: 10px;
     }
     
     .navbar {
