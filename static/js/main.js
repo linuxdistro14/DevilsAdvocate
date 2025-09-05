@@ -1,6 +1,6 @@
 /**
- * Digital Card Deck Application - Level-Based Game System
- * Features level progression with score requirements and round tracking
+ * Digital Card Deck Application - Two Player Game Version with Dare System
+ * Dare cards are separate from main deck and only displayed when triggered
  */
 
 class CardDeck {
@@ -10,7 +10,6 @@ class CardDeck {
         this.currentDeck = [];
         this.currentDareDeck = [];
         this.completedCards = [];
-        this.usedCardIds = new Set(); // Track used cards to prevent repeats
         this.currentCard = null;
         this.isDareCard = false;
         this.isAnimating = false;
@@ -18,8 +17,7 @@ class CardDeck {
         this.editingDareCardId = null;
         this.pendingDareForPlayer = null;
         
-        // Level-based game state
-        this.currentLevel = 1;
+        // Game state
         this.gameNumber = 1;
         this.currentPlayer = 1;
         this.startingPlayer = 1;
@@ -27,7 +25,6 @@ class CardDeck {
             1: {
                 name: 'Player 1',
                 score: 0,
-                roundsWon: 0, // Persistent round wins
                 cardsCompleted: 0,
                 cardsSkipped: 0,
                 wildcards: []
@@ -35,18 +32,19 @@ class CardDeck {
             2: {
                 name: 'Player 2',
                 score: 0,
-                roundsWon: 0, // Persistent round wins
                 cardsCompleted: 0,
                 cardsSkipped: 0,
                 wildcards: []
             }
         };
         
-        // Level configuration
-        this.levelConfig = {
-            1: { name: 'Level 1 - Easy', targetScore: 15, cardCount: 15 },
-            2: { name: 'Level 2 - Medium', targetScore: 24, cardCount: 12 },
-            3: { name: 'Level 3 - Hard', targetScore: 24, cardCount: 8 }
+        // Score values by card type and level
+        this.scoreValues = {
+            'truth': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+            'dare': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+            'never_ever': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+            'kink': {'level 1': 2, 'level 2': 4, 'level 3': 6},
+            'wild_card': {'level 1': 0, 'level 2': 0, 'level 3': 0}
         };
 
         // Card back images
@@ -61,13 +59,12 @@ class CardDeck {
     }
 
     async init() {
-        await this.loadLevelCards(this.currentLevel);
+        await this.loadCards();
         await this.loadDareCards();
         this.setupEventListeners();
         this.updateUI();
         this.loadGameState();
         this.updatePlayerDisplay();
-        this.updateLevelDisplay();
         this.setRandomCardBackImage();
         
         // Initialize tooltips
@@ -83,33 +80,22 @@ class CardDeck {
         cardBackImage.style.backgroundImage = `url('/static/images/${randomImage}')`;
     }
 
-    async loadLevelCards(level) {
+    async loadCards() {
         try {
-            const response = await fetch(`/api/cards/level/${level}/shuffle`);
+            const response = await fetch('/api/cards/shuffle');
             const data = await response.json();
             this.cards = data.cards || [];
             
-            // Filter out already used cards to prevent repeats
-            const levelKey = `level_${level}_used`;
-            const usedCards = JSON.parse(localStorage.getItem(levelKey) || '[]');
-            this.usedCardIds = new Set(usedCards);
+            // Ensure all cards have score values
+            this.cards = this.cards.map(card => ({
+                ...card,
+                scoreValue: card.scoreValue || this.scoreValues[card.type]?.[card.level] || 1
+            }));
             
-            // Only include cards that haven't been used
-            const availableCards = this.cards.filter(card => !this.usedCardIds.has(card.id));
-            
-            // If no cards available, reset the used cards for this level
-            if (availableCards.length === 0) {
-                this.usedCardIds.clear();
-                localStorage.removeItem(levelKey);
-                this.currentDeck = [...this.cards];
-                this.showToast(`Level ${level} deck refreshed!`, 'info');
-            } else {
-                this.currentDeck = availableCards;
-            }
-            
+            this.currentDeck = [...this.cards];
             this.completedCards = [];
         } catch (error) {
-            console.error('Error loading level cards:', error);
+            console.error('Error loading cards:', error);
             this.showToast('Failed to load cards', 'error');
         }
     }
@@ -227,12 +213,6 @@ class CardDeck {
             document.getElementById('winner-modal').classList.add('hidden');
         });
 
-        // Level completion modal buttons
-        document.querySelector('.btn-next-level').addEventListener('click', () => {
-            document.getElementById('level-complete-modal').classList.add('hidden');
-            this.advanceToNextLevel();
-        });
-
         // Modal controls
         this.setupModalControls();
 
@@ -270,6 +250,9 @@ class CardDeck {
         if (this.currentDeck.length === 0) {
             this.showToast('No more cards in the deck!', 'info');
             this.shakeElement(document.getElementById('card-deck'));
+            if (this.completedCards.length > 0) {
+                this.endGame();
+            }
             return;
         }
 
@@ -282,10 +265,6 @@ class CardDeck {
         this.currentCard = this.currentDeck.shift();
         this.isDareCard = false;
         
-        // Mark card as used
-        this.usedCardIds.add(this.currentCard.id);
-        this.saveUsedCards();
-        
         // Add haptic feedback for mobile
         if ('vibrate' in navigator) {
             navigator.vibrate(50);
@@ -293,7 +272,7 @@ class CardDeck {
         
         this.displayCurrentCard();
         this.updateUI();
-        this.setRandomCardBackImage();
+        this.setRandomCardBackImage(); // Change back image for next card
         
         setTimeout(() => {
             this.isAnimating = false;
@@ -361,7 +340,7 @@ class CardDeck {
             cardElement.querySelector('.card-content-large').textContent = this.currentCard.content;
             
             // Update score display
-            const scoreValue = this.isDareCard ? 0 : (this.currentCard.scoreValue || this.getCardScore());
+            const scoreValue = this.isDareCard ? 0 : (this.currentCard.scoreValue || this.scoreValues[this.currentCard.type]?.[this.currentCard.level] || 1);
             document.getElementById('card-score').textContent = scoreValue;
             document.getElementById('done-points').textContent = scoreValue;
             
@@ -382,7 +361,7 @@ class CardDeck {
                 levelElement.textContent = this.currentCard.difficulty;
                 levelElement.style.background = this.getDifficultyColor(this.currentCard.difficulty);
             } else {
-                levelElement.textContent = this.currentCard.level || `level ${this.currentLevel}`;
+                levelElement.textContent = this.currentCard.level || 'level 1';
                 levelElement.style.background = this.getLevelColor(this.currentCard.level);
             }
             
@@ -437,7 +416,7 @@ class CardDeck {
             // Add to completed stack display
             this.addToCompletedStack(this.currentCard, 'skip');
             
-            // Set up dare for the player who skipped
+            // Set up dare for the player who skipped (SAME PLAYER must do the dare)
             this.pendingDareForPlayer = this.currentPlayer;
             
             this.currentCard = null;
@@ -467,18 +446,12 @@ class CardDeck {
         setTimeout(() => {
             // Award points (unless it's a wild card)
             if (this.currentCard.type !== 'wild_card') {
-                const points = this.currentCard.scoreValue || this.getCardScore();
+                const points = this.currentCard.scoreValue || this.scoreValues[this.currentCard.type]?.[this.currentCard.level] || 1;
                 this.players[this.currentPlayer].score += points;
                 this.players[this.currentPlayer].cardsCompleted++;
                 
                 if (points > 0) {
-                    // Check if level is completed
-                    const targetScore = this.levelConfig[this.currentLevel].targetScore;
-                    if (this.players[this.currentPlayer].score >= targetScore) {
-                        this.completeLevelForPlayer(this.currentPlayer);
-                    } else {
-                        this.showToast(`+${points} points! ${this.players[this.currentPlayer === 1 ? 2 : 1].name}'s turn!`, 'success');
-                    }
+                    this.showToast(`+${points} points! ${this.players[this.currentPlayer === 1 ? 2 : 1].name}'s turn!`, 'success');
                 }
             }
             
@@ -491,8 +464,8 @@ class CardDeck {
             
             this.addToCompletedStack(this.currentCard, 'done');
             
-            // Switch turns (unless wild card or level completed)
-            if (this.currentCard.type !== 'wild_card' && this.players[this.currentPlayer].score < this.levelConfig[this.currentLevel].targetScore) {
+            // Switch turns (unless wild card)
+            if (this.currentCard.type !== 'wild_card') {
                 this.switchTurns();
             }
             
@@ -502,141 +475,16 @@ class CardDeck {
             this.updatePlayerDisplay();
             this.saveGameState();
             
+            // Check if deck is complete
+            if (this.currentDeck.length === 0) {
+                this.endGame();
+            }
+            
             // Reset card element animation
             cardElement.style.animation = '';
             
             this.isAnimating = false;
         }, 300);
-    }
-
-    completeLevelForPlayer(playerId) {
-        // Award round win
-        this.players[playerId].roundsWon++;
-        
-        // Show level completion modal
-        this.showLevelCompleteModal(playerId);
-    }
-
-    showLevelCompleteModal(winnerId) {
-        const modal = document.getElementById('level-complete-modal') || this.createLevelCompleteModal();
-        const winnerName = document.getElementById('level-winner-name');
-        const levelName = document.getElementById('completed-level-name');
-        const nextLevelBtn = document.querySelector('.btn-next-level');
-        
-        winnerName.textContent = this.players[winnerId].name;
-        levelName.textContent = this.levelConfig[this.currentLevel].name;
-        
-        // Show different buttons based on current level
-        if (this.currentLevel < 3) {
-            nextLevelBtn.textContent = `Continue to Level ${this.currentLevel + 1}`;
-            nextLevelBtn.style.display = 'block';
-        } else {
-            // Game complete
-            nextLevelBtn.textContent = 'Game Complete!';
-            nextLevelBtn.style.display = 'block';
-        }
-        
-        modal.classList.remove('hidden');
-        
-        // Show toast message
-        this.showToast(`🎉 ${this.players[winnerId].name} completed ${this.levelConfig[this.currentLevel].name}!`, 'success');
-    }
-
-    createLevelCompleteModal() {
-        const modalHtml = `
-            <div id="level-complete-modal" class="modal hidden">
-                <div class="modal-content winner-content">
-                    <h2 class="winner-title">🎊 Level Complete! 🎊</h2>
-                    <div class="winner-info">
-                        <div class="winner-name" id="level-winner-name">Player 1</div>
-                        <div class="level-complete-info">
-                            <p>Has completed <strong id="completed-level-name">Level 1</strong>!</p>
-                        </div>
-                    </div>
-                    <div class="winner-actions">
-                        <button class="btn btn-next-level">Continue to Next Level</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // Add event listener for the button
-        document.querySelector('.btn-next-level').addEventListener('click', () => {
-            document.getElementById('level-complete-modal').classList.add('hidden');
-            this.advanceToNextLevel();
-        });
-        
-        return document.getElementById('level-complete-modal');
-    }
-
-    advanceToNextLevel() {
-        if (this.currentLevel < 3) {
-            this.currentLevel++;
-            this.resetForNewLevel();
-        } else {
-            // All levels completed - show final winner
-            this.showFinalWinner();
-        }
-    }
-
-    resetForNewLevel() {
-        // Reset scores for new level
-        this.players[1].score = 0;
-        this.players[2].score = 0;
-        
-        // Load new level cards
-        this.loadLevelCards(this.currentLevel);
-        
-        // Clear current game state
-        this.currentCard = null;
-        this.isDareCard = false;
-        this.pendingDareForPlayer = null;
-        this.completedCards = [];
-        
-        // Update UI
-        this.displayCurrentCard();
-        document.getElementById('completed-cards-pile').innerHTML = '';
-        document.getElementById('empty-completed').classList.remove('hidden');
-        this.updateUI();
-        this.updatePlayerDisplay();
-        this.updateLevelDisplay();
-        this.setRandomCardBackImage();
-        this.saveGameState();
-        
-        this.showToast(`Welcome to ${this.levelConfig[this.currentLevel].name}!`, 'info');
-    }
-
-    showFinalWinner() {
-        const player1Wins = this.players[1].roundsWon;
-        const player2Wins = this.players[2].roundsWon;
-        
-        let finalWinner;
-        if (player1Wins > player2Wins) {
-            finalWinner = 1;
-        } else if (player2Wins > player1Wins) {
-            finalWinner = 2;
-        } else {
-            finalWinner = 0; // Tie
-        }
-        
-        // Show final winner modal
-        const modal = document.getElementById('winner-modal');
-        const winnerName = document.getElementById('winner-name');
-        
-        if (finalWinner === 0) {
-            winnerName.textContent = "It's a Tie!";
-        } else {
-            winnerName.textContent = `${this.players[finalWinner].name} Wins the Tournament!`;
-        }
-        
-        document.getElementById('final-player-1-name').textContent = this.players[1].name;
-        document.getElementById('final-player-1-score').textContent = `${this.players[1].roundsWon} rounds`;
-        document.getElementById('final-player-2-name').textContent = this.players[2].name;
-        document.getElementById('final-player-2-score').textContent = `${this.players[2].roundsWon} rounds`;
-        
-        modal.classList.remove('hidden');
     }
 
     completeDare() {
@@ -686,7 +534,7 @@ class CardDeck {
         // Set up dare for the opponent
         this.pendingDareForPlayer = this.currentPlayer === 1 ? 2 : 1;
         
-        this.completeCard();
+        this.completeCard(); // This will handle the card completion
         
         this.showToast(`${this.players[this.pendingDareForPlayer].name} must draw a dare card!`, 'info');
     }
@@ -700,7 +548,7 @@ class CardDeck {
             savedAt: new Date().toISOString()
         });
         
-        this.completeCard();
+        this.completeCard(); // This will handle the card completion
         
         this.showToast('Wild card saved to your collection!', 'success');
     }
@@ -800,12 +648,9 @@ class CardDeck {
 
     startNewGame() {
         if (this.completedCards.length > 0 || this.currentCard) {
-            const confirm = window.confirm('Are you sure you want to start a new game? Current progress will be lost.');
+            const confirm = window.confirm('Are you sure you want to start a new game? Current game progress will be lost.');
             if (!confirm) return;
         }
-        
-        // Reset to level 1
-        this.currentLevel = 1;
         
         // Switch starting player
         this.gameNumber++;
@@ -813,12 +658,8 @@ class CardDeck {
         this.currentPlayer = this.startingPlayer;
         this.pendingDareForPlayer = null;
         
-        // Reset scores but keep round wins
-        this.players[1].score = 0;
-        this.players[2].score = 0;
-        
         // Reset game state
-        Promise.all([this.loadLevelCards(this.currentLevel), this.loadDareCards()]).then(() => {
+        Promise.all([this.loadCards(), this.loadDareCards()]).then(() => {
             this.currentCard = null;
             this.isDareCard = false;
             this.displayCurrentCard();
@@ -826,44 +667,55 @@ class CardDeck {
             document.getElementById('empty-completed').classList.remove('hidden');
             this.updateUI();
             this.updatePlayerDisplay();
-            this.updateLevelDisplay();
             this.setRandomCardBackImage();
             this.saveGameState();
-            this.showToast(`New game started at Level 1! ${this.players[this.startingPlayer].name} goes first!`, 'success');
+            this.showToast(`New game started! ${this.players[this.startingPlayer].name} goes first!`, 'success');
         });
     }
 
     resetScores() {
-        if (!confirm('Are you sure you want to reset all scores and progress?')) return;
+        if (!confirm('Are you sure you want to reset all scores?')) return;
         
-        // Reset everything including round wins
         this.players[1].score = 0;
-        this.players[1].roundsWon = 0;
         this.players[1].cardsCompleted = 0;
         this.players[1].cardsSkipped = 0;
         this.players[1].wildcards = [];
         this.players[2].score = 0;
-        this.players[2].roundsWon = 0;
         this.players[2].cardsCompleted = 0;
         this.players[2].cardsSkipped = 0;
         this.players[2].wildcards = [];
         
-        this.currentLevel = 1;
         this.gameNumber = 1;
         this.startingPlayer = 1;
         this.currentPlayer = 1;
         this.pendingDareForPlayer = null;
         
-        // Clear used cards tracking
-        localStorage.removeItem('level_1_used');
-        localStorage.removeItem('level_2_used');
-        localStorage.removeItem('level_3_used');
-        this.usedCardIds.clear();
-        
         this.updatePlayerDisplay();
-        this.updateLevelDisplay();
         this.saveGameState();
-        this.showToast('All progress reset!', 'success');
+        this.showToast('Scores reset!', 'success');
+    }
+
+    endGame() {
+        // Determine winner
+        const winner = this.players[1].score > this.players[2].score ? 1 : 
+                      this.players[2].score > this.players[1].score ? 2 : 0;
+        
+        // Show winner modal
+        const modal = document.getElementById('winner-modal');
+        const winnerName = document.getElementById('winner-name');
+        
+        if (winner === 0) {
+            winnerName.textContent = "It's a Tie!";
+        } else {
+            winnerName.textContent = `${this.players[winner].name} Wins!`;
+        }
+        
+        document.getElementById('final-player-1-name').textContent = this.players[1].name;
+        document.getElementById('final-player-1-score').textContent = this.players[1].score;
+        document.getElementById('final-player-2-name').textContent = this.players[2].name;
+        document.getElementById('final-player-2-score').textContent = this.players[2].score;
+        
+        modal.classList.remove('hidden');
     }
 
     async shuffleDeck() {
@@ -882,7 +734,7 @@ class CardDeck {
         const deck = document.getElementById('card-deck');
         deck.style.animation = 'shuffle 0.5s ease';
         
-        // Shuffle current level deck
+        // Shuffle main deck
         for (let i = this.currentDeck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [this.currentDeck[i], this.currentDeck[j]] = [this.currentDeck[j], this.currentDeck[i]];
@@ -913,10 +765,6 @@ class CardDeck {
         document.getElementById('player-1-score').textContent = this.players[1].score;
         document.getElementById('player-2-score').textContent = this.players[2].score;
         
-        // Update round wins
-        document.getElementById('player-1-rounds').textContent = this.players[1].roundsWon;
-        document.getElementById('player-2-rounds').textContent = this.players[2].roundsWon;
-        
         // Update wildcard counts
         document.getElementById('player-1-wildcard-count').textContent = this.players[1].wildcards.length;
         document.getElementById('player-2-wildcard-count').textContent = this.players[2].wildcards.length;
@@ -930,55 +778,8 @@ class CardDeck {
         document.getElementById('game-number').textContent = this.gameNumber;
     }
 
-    updateLevelDisplay() {
-        const levelInfo = document.getElementById('level-info') || this.createLevelInfo();
-        const currentLevelName = document.getElementById('current-level-name');
-        const targetScore = document.getElementById('target-score');
-        const player1Progress = document.getElementById('player-1-progress');
-        const player2Progress = document.getElementById('player-2-progress');
-        
-        const config = this.levelConfig[this.currentLevel];
-        currentLevelName.textContent = config.name;
-        targetScore.textContent = config.targetScore;
-        
-        // Update progress bars
-        const p1Progress = (this.players[1].score / config.targetScore) * 100;
-        const p2Progress = (this.players[2].score / config.targetScore) * 100;
-        player1Progress.style.width = `${Math.min(p1Progress, 100)}%`;
-        player2Progress.style.width = `${Math.min(p2Progress, 100)}%`;
-    }
-
-    createLevelInfo() {
-        const levelInfoHtml = `
-            <div id="level-info" class="level-info">
-                <div class="level-header">
-                    <h3 id="current-level-name">Level 1 - Easy</h3>
-                    <div class="target-score">Target: <span id="target-score">15</span> points</div>
-                </div>
-                <div class="progress-bars">
-                    <div class="player-progress">
-                        <span class="player-progress-label">Player 1</span>
-                        <div class="progress-bar-small">
-                            <div id="player-1-progress" class="progress-fill-small"></div>
-                        </div>
-                    </div>
-                    <div class="player-progress">
-                        <span class="player-progress-label">Player 2</span>
-                        <div class="progress-bar-small">
-                            <div id="player-2-progress" class="progress-fill-small"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        const gameArea = document.querySelector('.game-area');
-        gameArea.insertAdjacentHTML('beforebegin', levelInfoHtml);
-        return document.getElementById('level-info');
-    }
-
     updateUI() {
-        // Update progress bar for overall game
+        // Update progress bar
         const total = this.cards.length;
         const completed = this.completedCards.length;
         const progress = total > 0 ? (completed / total) * 100 : 0;
@@ -1014,21 +815,6 @@ class CardDeck {
         
         // Update completed count
         document.querySelector('.completed-count-large').textContent = this.completedCards.length;
-        
-        // Update level display
-        this.updateLevelDisplay();
-    }
-
-    getCardScore() {
-        // Return score based on current level
-        const levelScores = {1: 1, 2: 2, 3: 4};
-        return levelScores[this.currentLevel] || 1;
-    }
-
-    saveUsedCards() {
-        const levelKey = `level_${this.currentLevel}_used`;
-        const usedCardsArray = Array.from(this.usedCardIds);
-        localStorage.setItem(levelKey, JSON.stringify(usedCardsArray));
     }
 
     // Modal and Form Management Methods
@@ -1059,34 +845,25 @@ class CardDeck {
 
         // Close modal on outside click
         [cardModal, dareCardModal, manageModal, manageDareModal, wildcardModal].forEach(modal => {
-            if (modal) {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        modal.classList.add('hidden');
-                        this.editingCardId = null;
-                        this.editingDareCardId = null;
-                    }
-                });
-            }
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    this.editingCardId = null;
+                    this.editingDareCardId = null;
+                }
+            });
         });
 
         // Form submissions
-        const cardForm = document.getElementById('card-form');
-        const dareForm = document.getElementById('dare-card-form');
-        
-        if (cardForm) {
-            cardForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveCard();
-            });
-        }
+        document.getElementById('card-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveCard();
+        });
 
-        if (dareForm) {
-            dareForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveDareCard();
-            });
-        }
+        document.getElementById('dare-card-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.saveDareCard();
+        });
     }
 
     setupFormControls() {
@@ -1096,17 +873,13 @@ class CardDeck {
         const dareContentInput = document.getElementById('dare-card-content-input');
         const dareCharCounter = document.getElementById('dare-char-current');
         
-        if (contentInput && charCounter) {
-            contentInput.addEventListener('input', () => {
-                charCounter.textContent = contentInput.value.length;
-            });
-        }
+        contentInput.addEventListener('input', () => {
+            charCounter.textContent = contentInput.value.length;
+        });
 
-        if (dareContentInput && dareCharCounter) {
-            dareContentInput.addEventListener('input', () => {
-                dareCharCounter.textContent = dareContentInput.value.length;
-            });
-        }
+        dareContentInput.addEventListener('input', () => {
+            dareCharCounter.textContent = dareContentInput.value.length;
+        });
 
         // Color picker sync
         const colorInput = document.getElementById('card-color-input');
@@ -1114,17 +887,13 @@ class CardDeck {
         const dareColorInput = document.getElementById('dare-card-color-input');
         const dareColorHex = document.getElementById('dare-color-hex');
         
-        if (colorInput && colorHex) {
-            colorInput.addEventListener('input', () => {
-                colorHex.textContent = colorInput.value.toUpperCase();
-            });
-        }
+        colorInput.addEventListener('input', () => {
+            colorHex.textContent = colorInput.value.toUpperCase();
+        });
 
-        if (dareColorInput && dareColorHex) {
-            dareColorInput.addEventListener('input', () => {
-                dareColorHex.textContent = dareColorInput.value.toUpperCase();
-            });
-        }
+        dareColorInput.addEventListener('input', () => {
+            dareColorHex.textContent = dareColorInput.value.toUpperCase();
+        });
 
         // Search functionality
         const searchInput = document.getElementById('search-cards');
@@ -1145,7 +914,7 @@ class CardDeck {
             
             switch(e.key.toLowerCase()) {
                 case 'd':
-                    if (!this.currentCard && !this.isDareCard) this.handleDeckClick();
+                    if (this.currentCard && !this.isDareCard) this.handleDeckClick();
                     break;
                 case 's':
                     if (this.currentCard && !this.isDareCard) this.skipCard();
@@ -1176,13 +945,13 @@ class CardDeck {
         const submitBtn = form.querySelector('.btn-submit');
         
         if (cardId) {
-            // Edit mode - need to find card across all levels
+            // Edit mode
             this.editingCardId = cardId;
             modalTitle.textContent = 'Edit Card';
             submitBtn.textContent = 'Update Card';
             
-            // Try to find card in current level first, then others
-            let card = this.cards.find(c => c.id === cardId);
+            // Load card data
+            const card = this.cards.find(c => c.id === cardId);
             if (card) {
                 document.getElementById('card-title-input').value = card.title;
                 document.getElementById('card-content-input').value = card.content;
@@ -1200,9 +969,6 @@ class CardDeck {
             form.reset();
             document.getElementById('char-current').textContent = '0';
             document.getElementById('color-hex').textContent = '#4CAF50';
-            
-            // Set default level to current level
-            document.getElementById('card-level-input').value = `level ${this.currentLevel}`;
         }
         
         modal.classList.remove('hidden');
@@ -1255,30 +1021,29 @@ class CardDeck {
             return;
         }
         
-        // Extract level number
-        const levelNum = parseInt(level.replace('level ', ''));
+        const scoreValue = this.scoreValues[type]?.[level] || 1;
         
         const cardData = {
             title,
             content,
             type,
             level,
-            color,
-            scoreValue: type === 'wild_card' ? 0 : (levelNum === 1 ? 1 : levelNum === 2 ? 2 : 4)
+            scoreValue,
+            color
         };
         
         try {
             let response;
             if (this.editingCardId) {
                 // Update existing card
-                response = await fetch(`/api/cards/${this.editingCardId}/level/${levelNum}`, {
+                response = await fetch(`/api/cards/${this.editingCardId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(cardData)
                 });
             } else {
                 // Add new card
-                response = await fetch(`/api/cards/level/${levelNum}`, {
+                response = await fetch('/api/cards', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(cardData)
@@ -1296,15 +1061,13 @@ class CardDeck {
                     }
                     this.showToast('Card updated successfully!', 'success');
                 } else {
-                    // Add to current deck if same level
-                    if (levelNum === this.currentLevel) {
-                        this.currentDeck.push(savedCard);
-                    }
+                    // Add to current deck
+                    this.currentDeck.push(savedCard);
                     this.showToast('Card added successfully!', 'success');
                 }
                 
-                // Reload cards for current level
-                await this.loadLevelCards(this.currentLevel);
+                // Reload cards list
+                await this.loadCards();
                 this.updateUI();
                 
                 // Close modal
@@ -1372,7 +1135,7 @@ class CardDeck {
                     this.showToast('Dare card added successfully!', 'success');
                 }
                 
-                // Reload dare cards list
+                // Reload cards list
                 await this.loadDareCards();
                 this.updateUI();
                 
@@ -1403,14 +1166,9 @@ class CardDeck {
 
     async loadCardsList() {
         try {
-            // Load cards from all levels
-            let allCards = [];
-            for (let level = 1; level <= 3; level++) {
-                const response = await fetch(`/api/cards/level/${level}`);
-                const data = await response.json();
-                allCards = allCards.concat(data.cards || []);
-            }
-            this.displayCardsList(allCards);
+            const response = await fetch('/api/cards');
+            const data = await response.json();
+            this.displayCardsList(data.cards || []);
         } catch (error) {
             console.error('Error loading cards list:', error);
             this.showToast('Failed to load cards list', 'error');
@@ -1437,20 +1195,19 @@ class CardDeck {
         }
         
         listContainer.innerHTML = cards.map(card => {
-            const score = card.scoreValue || 1;
+            const score = card.scoreValue || this.scoreValues[card.type]?.[card.level] || 1;
             return `
-                <div class="card-item" data-card-id="${card.id}" data-type="${card.type || ''}" data-level="${card.level || ''}">
+                <div class="card-item" data-card-id="${card.id}" data-type="${card.type || ''}">
                     <div class="card-item-info">
                         <div class="card-item-title">
                             ${card.title}
                             <span class="card-item-score">${score} pts</span>
-                            <span class="card-item-level">${card.level || 'level 1'}</span>
                         </div>
                         <div class="card-item-content">${card.content}</div>
                     </div>
                     <div class="card-item-actions">
                         <button class="btn-edit" onclick="cardDeck.openCardModal(${card.id})">Edit</button>
-                        <button class="btn-delete" onclick="cardDeck.deleteCard(${card.id}, '${card.level || 'level 1'}')">Delete</button>
+                        <button class="btn-delete" onclick="cardDeck.deleteCard(${card.id})">Delete</button>
                     </div>
                 </div>
             `;
@@ -1516,19 +1273,16 @@ class CardDeck {
         });
     }
 
-    async deleteCard(cardId, cardLevel) {
+    async deleteCard(cardId) {
         if (!confirm('Are you sure you want to delete this card?')) return;
         
-        // Extract level number
-        const levelNum = parseInt(cardLevel.replace('level ', ''));
-        
         try {
-            const response = await fetch(`/api/cards/${cardId}/level/${levelNum}`, {
+            const response = await fetch(`/api/cards/${cardId}`, {
                 method: 'DELETE'
             });
             
             if (response.ok) {
-                // Remove from current deck if present
+                // Remove from current deck
                 this.currentDeck = this.currentDeck.filter(c => c.id !== cardId);
                 
                 // Reload cards list
@@ -1572,13 +1326,19 @@ class CardDeck {
     // Utility Methods
     saveGameState() {
         const gameState = {
-            currentLevel: this.currentLevel,
             gameNumber: this.gameNumber,
             currentPlayer: this.currentPlayer,
             startingPlayer: this.startingPlayer,
             pendingDareForPlayer: this.pendingDareForPlayer,
             players: this.players,
-            usedCardIds: Array.from(this.usedCardIds),
+            currentDeck: this.currentDeck.map(c => c.id),
+            currentDareDeck: this.currentDareDeck.map(c => c.id),
+            completedCards: this.completedCards.map(c => ({
+                id: c.id,
+                playedBy: c.playedBy,
+                action: c.action,
+                type: c.type || 'main'
+            })),
             currentCard: this.currentCard ? {
                 id: this.currentCard.id,
                 isDare: this.isDareCard
@@ -1602,13 +1362,11 @@ class CardDeck {
         if (saved) {
             try {
                 const gameState = JSON.parse(saved);
-                this.currentLevel = gameState.currentLevel || 1;
                 this.gameNumber = gameState.gameNumber || 1;
                 this.currentPlayer = gameState.currentPlayer || 1;
                 this.startingPlayer = gameState.startingPlayer || 1;
                 this.pendingDareForPlayer = gameState.pendingDareForPlayer || null;
                 this.players = gameState.players || this.players;
-                this.usedCardIds = new Set(gameState.usedCardIds || []);
             } catch (error) {
                 console.error('Error loading game state:', error);
             }
