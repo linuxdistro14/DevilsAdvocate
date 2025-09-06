@@ -1,4 +1,3 @@
-```javascript
 /**
  * Digital Card Deck Application - Two Player Game Version with Dare System
  * Dare cards are separate from main deck and only displayed when triggered
@@ -17,7 +16,7 @@ class CardDeck {
         this.editingCardId = null;
         this.editingDareCardId = null;
         this.pendingDareForPlayer = null;
-
+        
         // Game state
         this.gameNumber = 1;
         this.currentPlayer = 1;
@@ -38,7 +37,7 @@ class CardDeck {
                 wildcards: []
             }
         };
-
+        
         // Score values by card type and level
         this.scoreValues = {
             'truth': {'level 1': 1, 'level 2': 2, 'level 3': 4},
@@ -55,85 +54,61 @@ class CardDeck {
             'image_11.png', 'image_12.png', 'image_13.png', 'image_14.png', 'image_15.png',
             'image_16.png', 'image_17.png', 'image_18.png', 'image_19.png'
         ];
-
-        // Animation durations in milliseconds
-        this.ANIMATION_DURATIONS = {
-            FLIP: 600,
-            SLIDE: 300,
-            SHUFFLE: 500,
-            SHAKE: 500
-        };
-
+        
         this.init();
     }
 
     async init() {
-        await Promise.all([this.loadCards(), this.loadDareCards()]);
-        await this.loadGameState();
+        await this.loadCards();
+        await this.loadDareCards();
         this.setupEventListeners();
         this.updateUI();
+        this.loadGameState();
         this.updatePlayerDisplay();
         this.setRandomCardBackImage();
-
+        
         // Initialize tooltips
         this.initTooltips();
-
+        
         // Check for mobile
         this.checkMobile();
-    }
-
-    escapeHTML(str) {
-        return str.replace(/[&<>"']/g, (match) => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        }[match]));
     }
 
     setRandomCardBackImage() {
         const randomImage = this.cardBackImages[Math.floor(Math.random() * this.cardBackImages.length)];
         const cardBackImage = document.getElementById('card-back-image');
-        if (cardBackImage) {
-            cardBackImage.style.backgroundImage = `url('/static/images/${randomImage}')`;
-        } else {
-            console.warn('Card back image element not found');
-        }
+        cardBackImage.style.backgroundImage = `url('/static/images/${randomImage}')`;
     }
 
     async loadCards() {
         try {
-            const response = await fetch('/api/cards/shuffle', { timeout: 5000 });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            const response = await fetch('/api/cards/shuffle');
             const data = await response.json();
             this.cards = data.cards || [];
+            
+            // Ensure all cards have score values
             this.cards = this.cards.map(card => ({
                 ...card,
                 scoreValue: card.scoreValue || this.scoreValues[card.type]?.[card.level] || 1
             }));
+            
             this.currentDeck = [...this.cards];
             this.completedCards = [];
         } catch (error) {
             console.error('Error loading cards:', error);
-            this.showToast('Failed to load cards. Please try again.', 'error');
+            this.showToast('Failed to load cards', 'error');
         }
     }
 
     async loadDareCards() {
         try {
-            const response = await fetch('/api/dare-cards/shuffle', { timeout: 5000 });
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            const response = await fetch('/api/dare-cards/shuffle');
             const data = await response.json();
             this.dareCards = data.cards || [];
             this.currentDareDeck = [...this.dareCards];
         } catch (error) {
             console.error('Error loading dare cards:', error);
-            this.showToast('Failed to load dare cards. Please try again.', 'error');
+            this.showToast('Failed to load dare cards', 'error');
         }
     }
 
@@ -141,7 +116,7 @@ class CardDeck {
         // Navigation menu
         const navMenuBtn = document.getElementById('nav-menu-btn');
         const navDropdown = document.getElementById('nav-dropdown');
-
+        
         navMenuBtn.addEventListener('click', () => {
             navMenuBtn.classList.toggle('active');
             navDropdown.classList.toggle('active');
@@ -204,13 +179,13 @@ class CardDeck {
 
         // Player name inputs
         document.getElementById('player-1-name').addEventListener('change', (e) => {
-            this.players[1].name = this.escapeHTML(e.target.value) || 'Player 1';
+            this.players[1].name = e.target.value || 'Player 1';
             this.updatePlayerDisplay();
             this.saveGameState();
         });
-
+        
         document.getElementById('player-2-name').addEventListener('change', (e) => {
-            this.players[2].name = this.escapeHTML(e.target.value) || 'Player 2';
+            this.players[2].name = e.target.value || 'Player 2';
             this.updatePlayerDisplay();
             this.saveGameState();
         });
@@ -233,7 +208,7 @@ class CardDeck {
             document.getElementById('winner-modal').classList.add('hidden');
             this.startNewGame();
         });
-
+        
         document.querySelector('.btn-close-modal').addEventListener('click', () => {
             document.getElementById('winner-modal').classList.add('hidden');
         });
@@ -258,20 +233,20 @@ class CardDeck {
 
     handleDeckClick() {
         if (this.isAnimating) return;
-
+        
         // Check if there's a pending dare to show
         if (this.pendingDareForPlayer) {
             this.showPendingDare();
             return;
         }
-
+        
         // Regular card draw
         this.flipCard();
     }
 
     flipCard() {
         if (this.isAnimating) return;
-
+        
         if (this.currentDeck.length === 0) {
             this.showToast('No more cards in the deck!', 'info');
             this.shakeElement(document.getElementById('card-deck'));
@@ -289,19 +264,19 @@ class CardDeck {
         this.isAnimating = true;
         this.currentCard = this.currentDeck.shift();
         this.isDareCard = false;
-
+        
         // Add haptic feedback for mobile
         if ('vibrate' in navigator) {
             navigator.vibrate(50);
         }
-
+        
         this.displayCurrentCard();
         this.updateUI();
         this.setRandomCardBackImage(); // Change back image for next card
-
+        
         setTimeout(() => {
             this.isAnimating = false;
-        }, this.ANIMATION_DURATIONS.FLIP);
+        }, 600);
     }
 
     showPendingDare() {
@@ -315,7 +290,7 @@ class CardDeck {
         this.isAnimating = true;
         this.currentCard = this.currentDareDeck.shift();
         this.isDareCard = true;
-
+        
         // Switch to the player who must do the dare
         this.currentPlayer = this.pendingDareForPlayer;
         this.pendingDareForPlayer = null;
@@ -323,17 +298,17 @@ class CardDeck {
         // Update deck styling for dare cards
         const deckElement = document.getElementById('card-deck');
         deckElement.classList.add('dare-deck');
-
+        
         document.getElementById('instruction-text').textContent = 'Dare Card - Must Complete';
-
+        
         this.displayCurrentCard();
         this.updateUI();
         this.updatePlayerDisplay();
-
+        
         setTimeout(() => {
             this.isAnimating = false;
             deckElement.classList.remove('dare-deck');
-        }, this.ANIMATION_DURATIONS.FLIP);
+        }, 600);
     }
 
     displayCurrentCard() {
@@ -341,16 +316,16 @@ class CardDeck {
         const actionButtons = document.getElementById('action-buttons');
         const dareActionButtons = document.getElementById('dare-action-buttons');
         const wildcardActionButtons = document.getElementById('wildcard-action-buttons');
-
+        
         if (this.currentCard) {
             // Update card content
             const cardFront = cardElement.querySelector('.card-front-large');
             cardFront.style.borderTop = `5px solid ${this.currentCard.color || '#4CAF50'}`;
-
+            
             // Remove all special classes first
             cardFront.classList.remove('wild-card', 'dare-card');
             cardElement.classList.remove('wild-card-glow', 'dare-card-glow');
-
+            
             // Special styling for different card types
             if (this.currentCard.type === 'wild_card') {
                 cardFront.classList.add('wild-card');
@@ -359,16 +334,16 @@ class CardDeck {
                 cardFront.classList.add('dare-card');
                 cardElement.classList.add('dare-card-glow');
             }
-
+            
             document.getElementById('card-id').textContent = this.currentCard.id;
             cardElement.querySelector('.card-title-large').textContent = this.currentCard.title;
             cardElement.querySelector('.card-content-large').textContent = this.currentCard.content;
-
+            
             // Update score display
             const scoreValue = this.isDareCard ? 0 : (this.currentCard.scoreValue || this.scoreValues[this.currentCard.type]?.[this.currentCard.level] || 1);
             document.getElementById('card-score').textContent = scoreValue;
             document.getElementById('done-points').textContent = scoreValue;
-
+            
             // Update type badge
             const typeBadge = cardElement.querySelector('.card-type-badge-large');
             if (this.isDareCard) {
@@ -379,7 +354,7 @@ class CardDeck {
                 typeBadge.style.background = this.getTypeColor(this.currentCard.type);
             }
             typeBadge.style.color = 'white';
-
+            
             // Update level
             const levelElement = cardElement.querySelector('.card-level-large');
             if (this.isDareCard && this.currentCard.difficulty) {
@@ -389,16 +364,16 @@ class CardDeck {
                 levelElement.textContent = this.currentCard.level || 'level 1';
                 levelElement.style.background = this.getLevelColor(this.currentCard.level);
             }
-
+            
             // Show card with animation
             cardElement.classList.remove('hidden');
             cardElement.classList.add('flip-animation');
-
+            
             // Show appropriate action buttons
             actionButtons.classList.add('hidden');
             dareActionButtons.classList.add('hidden');
             wildcardActionButtons.classList.add('hidden');
-
+            
             if (this.isDareCard) {
                 dareActionButtons.classList.remove('hidden');
             } else if (this.currentCard.type === 'wild_card') {
@@ -406,10 +381,10 @@ class CardDeck {
             } else {
                 actionButtons.classList.remove('hidden');
             }
-
+            
             setTimeout(() => {
                 cardElement.classList.remove('flip-animation');
-            }, this.ANIMATION_DURATIONS.FLIP);
+            }, 600);
         } else {
             cardElement.classList.add('hidden');
             actionButtons.classList.add('hidden');
@@ -418,206 +393,163 @@ class CardDeck {
         }
     }
 
-    async skipCard() {
+    skipCard() {
         if (!this.currentCard || this.isAnimating || this.isDareCard) return;
-
+        
         this.isAnimating = true;
-
+        
         // Animate card sliding away
         const cardElement = document.getElementById('current-card');
-        cardElement.style.animation = `slideOutLeft ${this.ANIMATION_DURATIONS.SLIDE / 1000}s ease`;
-
-        try {
-            // Mark card as used in database FIRST
-            const response = await fetch(`/api/cards/used/${this.currentPlayer}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ card_id: this.currentCard.id })
+        cardElement.style.animation = 'slideOutLeft 0.3s ease';
+        
+        setTimeout(() => {
+            // Add to completed pile
+            this.completedCards.push({
+                ...this.currentCard,
+                playedBy: this.currentPlayer,
+                action: 'skip'
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to mark card as used');
-            }
-
-            setTimeout(() => {
-                // Add to completed pile
-                this.completedCards.push({
-                    ...this.currentCard,
-                    playedBy: this.currentPlayer,
-                    action: 'skip'
-                });
-
-                // Update player stats
-                this.players[this.currentPlayer].cardsSkipped++;
-
-                // Add to completed stack display
-                this.addToCompletedStack(this.currentCard, 'skip');
-
-                // Set up dare for the player who skipped (SAME PLAYER must do the dare)
-                this.pendingDareForPlayer = this.currentPlayer;
-
-                this.currentCard = null;
-                this.displayCurrentCard();
-                this.updateUI();
-                this.updatePlayerDisplay();
-                this.saveGameState();
-
-                this.showToast(`${this.players[this.pendingDareForPlayer].name} must now complete a dare!`, 'info');
-
-                // Reset card element animation
-                cardElement.style.animation = '';
-
-                this.isAnimating = false;
-            }, this.ANIMATION_DURATIONS.SLIDE);
-
-        } catch (error) {
-            console.error('Error skipping card:', error);
-            this.showToast('Failed to skip card', 'error');
+            
+            // Update player stats
+            this.players[this.currentPlayer].cardsSkipped++;
+            
+            // Add to completed stack display
+            this.addToCompletedStack(this.currentCard, 'skip');
+            
+            // Set up dare for the player who skipped (SAME PLAYER must do the dare)
+            this.pendingDareForPlayer = this.currentPlayer;
+            
+            this.currentCard = null;
+            this.displayCurrentCard();
+            this.updateUI();
+            this.updatePlayerDisplay();
+            this.saveGameState();
+            
+            this.showToast(`${this.players[this.pendingDareForPlayer].name} must now complete a dare!`, 'info');
+            
+            // Reset card element animation
             cardElement.style.animation = '';
+            
             this.isAnimating = false;
-        }
+        }, 300);
     }
 
-    async completeCard() {
+    completeCard() {
         if (!this.currentCard || this.isAnimating || this.isDareCard) return;
-
+        
         this.isAnimating = true;
-
+        
         // Animate card completion
         const cardElement = document.getElementById('current-card');
-        cardElement.style.animation = `slideOutRight ${this.ANIMATION_DURATIONS.SLIDE / 1000}s ease`;
-
-        try {
-            // Mark card as used in database FIRST
-            const response = await fetch(`/api/cards/used/${this.currentPlayer}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ card_id: this.currentCard.id })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to mark card as used');
+        cardElement.style.animation = 'slideOutRight 0.3s ease';
+        
+        setTimeout(() => {
+            // Award points (unless it's a wild card)
+            if (this.currentCard.type !== 'wild_card') {
+                const points = this.currentCard.scoreValue || this.scoreValues[this.currentCard.type]?.[this.currentCard.level] || 1;
+                this.players[this.currentPlayer].score += points;
+                this.players[this.currentPlayer].cardsCompleted++;
+                
+                if (points > 0) {
+                    this.showToast(`+${points} points! ${this.players[this.currentPlayer === 1 ? 2 : 1].name}'s turn!`, 'success');
+                }
             }
-
-            setTimeout(() => {
-                // Award points (unless it's a wild card)
-                if (this.currentCard.type !== 'wild_card') {
-                    const points = this.currentCard.scoreValue || this.scoreValues[this.currentCard.type]?.[this.currentCard.level] || 1;
-                    this.players[this.currentPlayer].score += points;
-                    this.players[this.currentPlayer].cardsCompleted++;
-
-                    if (points > 0) {
-                        this.showToast(`+${points} points! ${this.players[this.currentPlayer === 1 ? 2 : 1].name}'s turn!`, 'success');
-                    }
-                }
-
-                // Add to completed cards
-                this.completedCards.push({
-                    ...this.currentCard,
-                    playedBy: this.currentPlayer,
-                    action: 'done'
-                });
-
-                this.addToCompletedStack(this.currentCard, 'done');
-
-                // Switch turns (unless wild card)
-                if (this.currentCard.type !== 'wild_card') {
-                    this.switchTurns();
-                }
-
-                this.currentCard = null;
-                this.displayCurrentCard();
-                this.updateUI();
-                this.updatePlayerDisplay();
-                this.saveGameState();
-
-                // Check if deck is complete
-                if (this.currentDeck.length === 0) {
-                    this.endGame();
-                }
-
-                // Reset card element animation
-                cardElement.style.animation = '';
-
-                this.isAnimating = false;
-            }, this.ANIMATION_DURATIONS.SLIDE);
-
-        } catch (error) {
-            console.error('Error completing card:', error);
-            this.showToast('Failed to complete card', 'error');
+            
+            // Add to completed cards
+            this.completedCards.push({
+                ...this.currentCard,
+                playedBy: this.currentPlayer,
+                action: 'done'
+            });
+            
+            this.addToCompletedStack(this.currentCard, 'done');
+            
+            // Switch turns (unless wild card)
+            if (this.currentCard.type !== 'wild_card') {
+                this.switchTurns();
+            }
+            
+            this.currentCard = null;
+            this.displayCurrentCard();
+            this.updateUI();
+            this.updatePlayerDisplay();
+            this.saveGameState();
+            
+            // Check if deck is complete
+            if (this.currentDeck.length === 0) {
+                this.endGame();
+            }
+            
+            // Reset card element animation
             cardElement.style.animation = '';
+            
             this.isAnimating = false;
-        }
+        }, 300);
     }
 
     completeDare() {
         if (!this.currentCard || this.isAnimating || !this.isDareCard) return;
-
+        
         this.isAnimating = true;
-
+        
         // Animate card completion
         const cardElement = document.getElementById('current-card');
-        cardElement.style.animation = `slideOutRight ${this.ANIMATION_DURATIONS.SLIDE / 1000}s ease`;
-
+        cardElement.style.animation = 'slideOutRight 0.3s ease';
+        
         setTimeout(() => {
             // No points awarded for dare cards, but track completion
             this.players[this.currentPlayer].cardsCompleted++;
-
+            
             // Add to completed cards
             this.completedCards.push({
                 ...this.currentCard,
                 playedBy: this.currentPlayer,
                 action: 'dare'
             });
-
+            
             this.addToCompletedStack(this.currentCard, 'dare');
-
+            
             // Switch turns back to the other player
             this.switchTurns();
-
+            
             this.currentCard = null;
             this.isDareCard = false;
             this.displayCurrentCard();
             this.updateUI();
             this.updatePlayerDisplay();
             this.saveGameState();
-
+            
             this.showToast(`Dare completed! ${this.players[this.currentPlayer].name}'s turn!`, 'success');
-
+            
             // Reset card element animation
             cardElement.style.animation = '';
-
+            
             this.isAnimating = false;
-        }, this.ANIMATION_DURATIONS.SLIDE);
+        }, 300);
     }
 
     useWildcardOnOpponent() {
         if (!this.currentCard || this.currentCard.type !== 'wild_card') return;
-
-        if (this.currentDareDeck.length === 0) {
-            this.showToast('No dare cards available!', 'error');
-            return;
-        }
-
+        
         // Set up dare for the opponent
         this.pendingDareForPlayer = this.currentPlayer === 1 ? 2 : 1;
-
+        
         this.completeCard(); // This will handle the card completion
-
+        
         this.showToast(`${this.players[this.pendingDareForPlayer].name} must draw a dare card!`, 'info');
     }
 
     saveWildcardForLater() {
         if (!this.currentCard || this.currentCard.type !== 'wild_card') return;
-
+        
         // Add wildcard to player's collection
         this.players[this.currentPlayer].wildcards.push({
             ...this.currentCard,
             savedAt: new Date().toISOString()
         });
-
+        
         this.completeCard(); // This will handle the card completion
-
+        
         this.showToast('Wild card saved to your collection!', 'success');
     }
 
@@ -625,30 +557,23 @@ class CardDeck {
         const modal = document.getElementById('wildcard-collection-modal');
         const list = document.getElementById('wildcard-list');
         const wildcards = this.players[playerId].wildcards;
-
+        
         if (wildcards.length === 0) {
             list.innerHTML = '<p class="empty-state">No wild cards collected yet</p>';
         } else {
             list.innerHTML = wildcards.map((card, index) => `
                 <div class="wildcard-item">
-                    <div class="wildcard-item-title">${this.escapeHTML(card.title)}</div>
-                    <div class="wildcard-item-content">${this.escapeHTML(card.content)}</div>
+                    <div class="wildcard-item-title">${card.title}</div>
+                    <div class="wildcard-item-content">${card.content}</div>
                     <div class="wildcard-item-actions">
-                        <button class="btn-use-now" data-action="use" data-index="${index}">
+                        <button class="btn-use-now" onclick="cardDeck.useWildcardFromCollection(${playerId}, ${index})">
                             Use Now
                         </button>
                     </div>
                 </div>
             `).join('');
         }
-
-        list.addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button || button.dataset.action !== 'use') return;
-            const index = parseInt(button.dataset.index);
-            this.useWildcardFromCollection(playerId, index);
-        });
-
+        
         modal.classList.remove('hidden');
     }
 
@@ -657,27 +582,22 @@ class CardDeck {
             this.showToast('Complete the current card first', 'info');
             return;
         }
-
-        if (this.currentDareDeck.length === 0) {
-            this.showToast('No dare cards available!', 'error');
-            return;
-        }
-
+        
         const wildcard = this.players[playerId].wildcards[wildcardIndex];
-
+        
         // Remove wildcard from collection
         this.players[playerId].wildcards.splice(wildcardIndex, 1);
-
+        
         // Set up dare for the opponent
         this.pendingDareForPlayer = playerId === 1 ? 2 : 1;
         this.currentPlayer = playerId;
-
+        
         // Close modal
         document.getElementById('wildcard-collection-modal').classList.add('hidden');
-
+        
         this.updatePlayerDisplay();
         this.saveGameState();
-
+        
         this.showToast(`Using ${wildcard.title}! ${this.players[this.pendingDareForPlayer].name} must draw a dare!`, 'info');
     }
 
@@ -688,14 +608,14 @@ class CardDeck {
     addToCompletedStack(card, action) {
         const completedPile = document.getElementById('completed-cards-pile');
         const emptyState = document.getElementById('empty-completed');
-
+        
         emptyState.classList.add('hidden');
-
+        
         // Create face-up card for the stack
         const cardFace = document.createElement('div');
         cardFace.className = 'completed-card-face';
         cardFace.style.borderTop = `3px solid ${card.color || '#4CAF50'}`;
-
+        
         let actionText = '';
         if (action === 'done') {
             actionText = `✓ ${card.scoreValue || 0} pts`;
@@ -704,24 +624,24 @@ class CardDeck {
         } else if (action === 'dare') {
             actionText = 'Dare Done';
         }
-
+        
         const playerName = this.players[this.currentPlayer].name;
-
+        
         cardFace.innerHTML = `
-            <div class="completed-card-mini-title">${this.escapeHTML(card.title)}</div>
-            <div class="completed-card-mini-content">${this.escapeHTML(card.content.substring(0, 150))}...</div>
+            <div class="completed-card-mini-title">${card.title}</div>
+            <div class="completed-card-mini-content">${card.content.substring(0, 150)}...</div>
             <div class="completed-card-mini-footer">
-                <span class="completed-card-player">${this.escapeHTML(playerName)}</span>
+                <span class="completed-card-player">${playerName}</span>
                 <span class="completed-card-action action-${action}">${actionText}</span>
             </div>
         `;
-
+        
         // Add to pile (limit visible cards to 5 for performance)
         if (completedPile.children.length >= 5) {
             completedPile.removeChild(completedPile.lastChild);
         }
         completedPile.insertBefore(cardFace, completedPile.firstChild);
-
+        
         // Update count
         document.querySelector('.completed-count-large').textContent = this.completedCards.length;
     }
@@ -731,13 +651,13 @@ class CardDeck {
             const confirm = window.confirm('Are you sure you want to start a new game? Current game progress will be lost.');
             if (!confirm) return;
         }
-
+        
         // Switch starting player
         this.gameNumber++;
         this.startingPlayer = this.startingPlayer === 1 ? 2 : 1;
         this.currentPlayer = this.startingPlayer;
         this.pendingDareForPlayer = null;
-
+        
         // Reset game state
         Promise.all([this.loadCards(), this.loadDareCards()]).then(() => {
             this.currentCard = null;
@@ -755,7 +675,7 @@ class CardDeck {
 
     resetScores() {
         if (!confirm('Are you sure you want to reset all scores?')) return;
-
+        
         this.players[1].score = 0;
         this.players[1].cardsCompleted = 0;
         this.players[1].cardsSkipped = 0;
@@ -764,12 +684,12 @@ class CardDeck {
         this.players[2].cardsCompleted = 0;
         this.players[2].cardsSkipped = 0;
         this.players[2].wildcards = [];
-
+        
         this.gameNumber = 1;
         this.startingPlayer = 1;
         this.currentPlayer = 1;
         this.pendingDareForPlayer = null;
-
+        
         this.updatePlayerDisplay();
         this.saveGameState();
         this.showToast('Scores reset!', 'success');
@@ -777,24 +697,24 @@ class CardDeck {
 
     endGame() {
         // Determine winner
-        const winner = this.players[1].score > this.players[2].score ? 1 :
+        const winner = this.players[1].score > this.players[2].score ? 1 : 
                       this.players[2].score > this.players[1].score ? 2 : 0;
-
+        
         // Show winner modal
         const modal = document.getElementById('winner-modal');
         const winnerName = document.getElementById('winner-name');
-
+        
         if (winner === 0) {
             winnerName.textContent = "It's a Tie!";
         } else {
             winnerName.textContent = `${this.players[winner].name} Wins!`;
         }
-
+        
         document.getElementById('final-player-1-name').textContent = this.players[1].name;
         document.getElementById('final-player-1-score').textContent = this.players[1].score;
         document.getElementById('final-player-2-name').textContent = this.players[2].name;
         document.getElementById('final-player-2-score').textContent = this.players[2].score;
-
+        
         modal.classList.remove('hidden');
     }
 
@@ -808,24 +728,24 @@ class CardDeck {
             this.currentCard = null;
             this.isDareCard = false;
         }
-
+        
         // Fisher-Yates shuffle with animation
         this.isAnimating = true;
         const deck = document.getElementById('card-deck');
-        deck.style.animation = `shuffle ${this.ANIMATION_DURATIONS.SHUFFLE / 1000}s ease`;
-
+        deck.style.animation = 'shuffle 0.5s ease';
+        
         // Shuffle main deck
         for (let i = this.currentDeck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [this.currentDeck[i], this.currentDeck[j]] = [this.currentDeck[j], this.currentDeck[i]];
         }
-
+        
         // Shuffle dare deck
         for (let i = this.currentDareDeck.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [this.currentDareDeck[i], this.currentDareDeck[j]] = [this.currentDareDeck[j], this.currentDareDeck[i]];
         }
-
+        
         setTimeout(() => {
             deck.style.animation = '';
             this.displayCurrentCard();
@@ -833,26 +753,26 @@ class CardDeck {
             this.setRandomCardBackImage();
             this.showToast('Decks shuffled!', 'success');
             this.isAnimating = false;
-        }, this.ANIMATION_DURATIONS.SHUFFLE);
+        }, 500);
     }
 
     updatePlayerDisplay() {
         // Update player names
         document.getElementById('player-1-name').value = this.players[1].name;
         document.getElementById('player-2-name').value = this.players[2].name;
-
+        
         // Update scores
         document.getElementById('player-1-score').textContent = this.players[1].score;
         document.getElementById('player-2-score').textContent = this.players[2].score;
-
+        
         // Update wildcard counts
         document.getElementById('player-1-wildcard-count').textContent = this.players[1].wildcards.length;
         document.getElementById('player-2-wildcard-count').textContent = this.players[2].wildcards.length;
-
+        
         // Update current turn indicator
         document.getElementById('player-1-card').classList.toggle('active', this.currentPlayer === 1);
         document.getElementById('player-2-card').classList.toggle('active', this.currentPlayer === 2);
-
+        
         // Update game info
         document.getElementById('current-player').textContent = this.players[this.currentPlayer].name;
         document.getElementById('game-number').textContent = this.gameNumber;
@@ -864,7 +784,7 @@ class CardDeck {
         const completed = this.completedCards.length;
         const progress = total > 0 ? (completed / total) * 100 : 0;
         document.getElementById('progress-fill').style.width = `${progress}%`;
-
+        
         // Update deck appearance
         const deckElement = document.getElementById('card-deck');
         if (this.currentDeck.length === 0 && !this.pendingDareForPlayer) {
@@ -872,7 +792,7 @@ class CardDeck {
         } else {
             deckElement.classList.remove('disabled');
         }
-
+        
         // Update instruction text
         const instructionText = document.getElementById('instruction-text');
         if (this.pendingDareForPlayer) {
@@ -884,7 +804,7 @@ class CardDeck {
             instructionText.style.color = '';
             instructionText.style.fontWeight = '';
         }
-
+        
         // Update empty state
         const emptyState = document.getElementById('empty-completed');
         if (this.completedCards.length === 0) {
@@ -892,7 +812,7 @@ class CardDeck {
         } else {
             emptyState.classList.add('hidden');
         }
-
+        
         // Update completed count
         document.querySelector('.completed-count-large').textContent = this.completedCards.length;
     }
@@ -905,7 +825,7 @@ class CardDeck {
         const manageModal = document.getElementById('manage-modal');
         const manageDareModal = document.getElementById('manage-dare-modal');
         const wildcardModal = document.getElementById('wildcard-collection-modal');
-
+        
         document.querySelectorAll('.modal-close').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.target.closest('.modal').classList.add('hidden');
@@ -952,7 +872,7 @@ class CardDeck {
         const charCounter = document.getElementById('char-current');
         const dareContentInput = document.getElementById('dare-card-content-input');
         const dareCharCounter = document.getElementById('dare-char-current');
-
+        
         contentInput.addEventListener('input', () => {
             charCounter.textContent = contentInput.value.length;
         });
@@ -966,7 +886,7 @@ class CardDeck {
         const colorHex = document.getElementById('color-hex');
         const dareColorInput = document.getElementById('dare-card-color-input');
         const dareColorHex = document.getElementById('dare-color-hex');
-
+        
         colorInput.addEventListener('input', () => {
             colorHex.textContent = colorInput.value.toUpperCase();
         });
@@ -980,18 +900,10 @@ class CardDeck {
         const filterSelect = document.getElementById('filter-type');
         const searchDareInput = document.getElementById('search-dare-cards');
         const filterDifficultySelect = document.getElementById('filter-difficulty');
-
-        const debounce = (func, wait) => {
-            let timeout;
-            return (...args) => {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), wait);
-            };
-        };
-
-        if (searchInput) searchInput.addEventListener('input', debounce(() => this.filterCardsList(), 300));
+        
+        if (searchInput) searchInput.addEventListener('input', () => this.filterCardsList());
         if (filterSelect) filterSelect.addEventListener('change', () => this.filterCardsList());
-        if (searchDareInput) searchDareInput.addEventListener('input', debounce(() => this.filterDareCardsList(), 300));
+        if (searchDareInput) searchDareInput.addEventListener('input', () => this.filterDareCardsList());
         if (filterDifficultySelect) filterDifficultySelect.addEventListener('change', () => this.filterDareCardsList());
     }
 
@@ -999,8 +911,8 @@ class CardDeck {
         document.addEventListener('keydown', (e) => {
             // Don't trigger shortcuts when typing in inputs
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-            switch (e.key.toLowerCase()) {
+            
+            switch(e.key.toLowerCase()) {
                 case 'd':
                     if (this.currentCard && !this.isDareCard) this.handleDeckClick();
                     break;
@@ -1031,13 +943,13 @@ class CardDeck {
         const form = document.getElementById('card-form');
         const modalTitle = document.getElementById('modal-title');
         const submitBtn = form.querySelector('.btn-submit');
-
+        
         if (cardId) {
             // Edit mode
             this.editingCardId = cardId;
             modalTitle.textContent = 'Edit Card';
             submitBtn.textContent = 'Update Card';
-
+            
             // Load card data
             const card = this.cards.find(c => c.id === cardId);
             if (card) {
@@ -1058,7 +970,7 @@ class CardDeck {
             document.getElementById('char-current').textContent = '0';
             document.getElementById('color-hex').textContent = '#4CAF50';
         }
-
+        
         modal.classList.remove('hidden');
     }
 
@@ -1067,13 +979,13 @@ class CardDeck {
         const form = document.getElementById('dare-card-form');
         const modalTitle = document.getElementById('dare-modal-title');
         const submitBtn = form.querySelector('.btn-submit');
-
+        
         if (cardId) {
             // Edit mode
             this.editingDareCardId = cardId;
             modalTitle.textContent = 'Edit Dare Card';
             submitBtn.textContent = 'Update Dare Card';
-
+            
             // Load card data
             const card = this.dareCards.find(c => c.id === cardId);
             if (card) {
@@ -1093,7 +1005,7 @@ class CardDeck {
             document.getElementById('dare-char-current').textContent = '0';
             document.getElementById('dare-color-hex').textContent = '#FF9800';
         }
-
+        
         modal.classList.remove('hidden');
     }
 
@@ -1103,25 +1015,14 @@ class CardDeck {
         const type = document.getElementById('card-type-input').value;
         const level = document.getElementById('card-level-input').value;
         const color = document.getElementById('card-color-input').value;
-
-        const validTypes = Object.keys(this.scoreValues);
-        const validLevels = ['level 1', 'level 2', 'level 3'];
-
+        
         if (!title || !content) {
             this.showToast('Please fill in all required fields', 'error');
             return;
         }
-        if (!validTypes.includes(type)) {
-            this.showToast('Invalid card type', 'error');
-            return;
-        }
-        if (!validLevels.includes(level)) {
-            this.showToast('Invalid card level', 'error');
-            return;
-        }
-
+        
         const scoreValue = this.scoreValues[type]?.[level] || 1;
-
+        
         const cardData = {
             title,
             content,
@@ -1130,7 +1031,7 @@ class CardDeck {
             scoreValue,
             color
         };
-
+        
         try {
             let response;
             if (this.editingCardId) {
@@ -1148,10 +1049,10 @@ class CardDeck {
                     body: JSON.stringify(cardData)
                 });
             }
-
+            
             if (response.ok) {
                 const savedCard = await response.json();
-
+                
                 if (this.editingCardId) {
                     // Update card in current deck if present
                     const index = this.currentDeck.findIndex(c => c.id === this.editingCardId);
@@ -1164,11 +1065,11 @@ class CardDeck {
                     this.currentDeck.push(savedCard);
                     this.showToast('Card added successfully!', 'success');
                 }
-
+                
                 // Reload cards list
                 await this.loadCards();
                 this.updateUI();
-
+                
                 // Close modal
                 document.getElementById('card-modal').classList.add('hidden');
                 document.getElementById('card-form').reset();
@@ -1187,25 +1088,19 @@ class CardDeck {
         const content = document.getElementById('dare-card-content-input').value.trim();
         const difficulty = document.getElementById('dare-card-difficulty-input').value;
         const color = document.getElementById('dare-card-color-input').value;
-
-        const validDifficulties = ['easy', 'medium', 'hard', 'extreme'];
-
+        
         if (!title || !content) {
             this.showToast('Please fill in all required fields', 'error');
             return;
         }
-        if (!validDifficulties.includes(difficulty)) {
-            this.showToast('Invalid difficulty level', 'error');
-            return;
-        }
-
+        
         const cardData = {
             title,
             content,
             difficulty,
             color
         };
-
+        
         try {
             let response;
             if (this.editingDareCardId) {
@@ -1223,10 +1118,10 @@ class CardDeck {
                     body: JSON.stringify(cardData)
                 });
             }
-
+            
             if (response.ok) {
                 const savedCard = await response.json();
-
+                
                 if (this.editingDareCardId) {
                     // Update card in current deck if present
                     const index = this.currentDareDeck.findIndex(c => c.id === this.editingDareCardId);
@@ -1239,11 +1134,11 @@ class CardDeck {
                     this.currentDareDeck.push(savedCard);
                     this.showToast('Dare card added successfully!', 'success');
                 }
-
+                
                 // Reload cards list
                 await this.loadDareCards();
                 this.updateUI();
-
+                
                 // Close modal
                 document.getElementById('dare-card-modal').classList.add('hidden');
                 document.getElementById('dare-card-form').reset();
@@ -1293,87 +1188,70 @@ class CardDeck {
 
     displayCardsList(cards) {
         const listContainer = document.getElementById('cards-list');
-
+        
+        if (cards.length === 0) {
+            listContainer.innerHTML = '<p class="empty-state">No cards found</p>';
+            return;
+        }
+        
         listContainer.innerHTML = cards.map(card => {
             const score = card.scoreValue || this.scoreValues[card.type]?.[card.level] || 1;
             return `
                 <div class="card-item" data-card-id="${card.id}" data-type="${card.type || ''}">
                     <div class="card-item-info">
                         <div class="card-item-title">
-                            ${this.escapeHTML(card.title)}
+                            ${card.title}
                             <span class="card-item-score">${score} pts</span>
                         </div>
-                        <div class="card-item-content">${this.escapeHTML(card.content)}</div>
+                        <div class="card-item-content">${card.content}</div>
                     </div>
                     <div class="card-item-actions">
-                        <button class="btn-edit" data-action="edit">Edit</button>
-                        <button class="btn-delete" data-action="delete">Delete</button>
+                        <button class="btn-edit" onclick="cardDeck.openCardModal(${card.id})">Edit</button>
+                        <button class="btn-delete" onclick="cardDeck.deleteCard(${card.id})">Delete</button>
                     </div>
                 </div>
             `;
         }).join('');
-
-        listContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button) return;
-            const cardId = parseInt(button.closest('.card-item').dataset.cardId);
-            if (button.dataset.action === 'edit') {
-                this.openCardModal(cardId);
-            } else if (button.dataset.action === 'delete') {
-                this.deleteCard(cardId);
-            }
-        });
     }
 
     displayDareCardsList(cards) {
         const listContainer = document.getElementById('dare-cards-list');
-
+        
         if (cards.length === 0) {
             listContainer.innerHTML = '<p class="empty-state">No dare cards found</p>';
             return;
         }
-
+        
         listContainer.innerHTML = cards.map(card => `
             <div class="card-item" data-card-id="${card.id}" data-difficulty="${card.difficulty || ''}">
                 <div class="card-item-info">
                     <div class="card-item-title">
-                        ${this.escapeHTML(card.title)}
+                        ${card.title}
                         <span class="card-item-score">${card.difficulty || 'easy'}</span>
                     </div>
-                    <div class="card-item-content">${this.escapeHTML(card.content)}</div>
+                    <div class="card-item-content">${card.content}</div>
                 </div>
                 <div class="card-item-actions">
-                    <button class="btn-edit" data-action="edit">Edit</button>
-                    <button class="btn-delete" data-action="delete">Delete</button>
+                    <button class="btn-edit" onclick="cardDeck.openDareCardModal(${card.id})">Edit</button>
+                    <button class="btn-delete" onclick="cardDeck.deleteDareCard(${card.id})">Delete</button>
                 </div>
             </div>
         `).join('');
-
-        listContainer.addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button) return;
-            const cardId = parseInt(button.closest('.card-item').dataset.cardId);
-            if (button.dataset.action === 'edit') {
-                this.openDareCardModal(cardId);
-            } else if (button.dataset.action === 'delete') {
-                this.deleteDareCard(cardId);
-            }
-        });
     }
 
     filterCardsList() {
         const searchTerm = document.getElementById('search-cards').value.toLowerCase();
         const filterType = document.getElementById('filter-type').value;
         const cardItems = document.querySelectorAll('#cards-list .card-item');
-
+        
         cardItems.forEach(item => {
             const title = item.querySelector('.card-item-title').textContent.toLowerCase();
             const content = item.querySelector('.card-item-content').textContent.toLowerCase();
             const type = item.dataset.type;
-
+            
             const matchesSearch = title.includes(searchTerm) || content.includes(searchTerm);
             const matchesType = !filterType || type === filterType;
-
+            
             item.style.display = matchesSearch && matchesType ? 'flex' : 'none';
         });
     }
@@ -1382,36 +1260,31 @@ class CardDeck {
         const searchTerm = document.getElementById('search-dare-cards').value.toLowerCase();
         const filterDifficulty = document.getElementById('filter-difficulty').value;
         const cardItems = document.querySelectorAll('#dare-cards-list .card-item');
-
+        
         cardItems.forEach(item => {
             const title = item.querySelector('.card-item-title').textContent.toLowerCase();
             const content = item.querySelector('.card-item-content').textContent.toLowerCase();
             const difficulty = item.dataset.difficulty;
-
+            
             const matchesSearch = title.includes(searchTerm) || content.includes(searchTerm);
             const matchesDifficulty = !filterDifficulty || difficulty === filterDifficulty;
-
+            
             item.style.display = matchesSearch && matchesDifficulty ? 'flex' : 'none';
         });
     }
 
     async deleteCard(cardId) {
-        if (this.currentCard && this.currentCard.id === cardId) {
-            this.showToast('Cannot delete the active card', 'error');
-            return;
-        }
-
         if (!confirm('Are you sure you want to delete this card?')) return;
-
+        
         try {
             const response = await fetch(`/api/cards/${cardId}`, {
                 method: 'DELETE'
             });
-
+            
             if (response.ok) {
                 // Remove from current deck
                 this.currentDeck = this.currentDeck.filter(c => c.id !== cardId);
-
+                
                 // Reload cards list
                 this.loadCardsList();
                 this.updateUI();
@@ -1426,22 +1299,17 @@ class CardDeck {
     }
 
     async deleteDareCard(cardId) {
-        if (this.currentCard && this.isDareCard && this.currentCard.id === cardId) {
-            this.showToast('Cannot delete the active dare card', 'error');
-            return;
-        }
-
         if (!confirm('Are you sure you want to delete this dare card?')) return;
-
+        
         try {
             const response = await fetch(`/api/dare-cards/${cardId}`, {
                 method: 'DELETE'
             });
-
+            
             if (response.ok) {
                 // Remove from current dare deck
                 this.currentDareDeck = this.currentDareDeck.filter(c => c.id !== cardId);
-
+                
                 // Reload dare cards list
                 this.loadDareCardsList();
                 this.updateUI();
@@ -1476,9 +1344,9 @@ class CardDeck {
                 isDare: this.isDareCard
             } : null
         };
-
+        
         localStorage.setItem('cardDeckGameState', JSON.stringify(gameState));
-
+        
         // Also save to server
         fetch('/api/game/state', {
             method: 'POST',
@@ -1489,7 +1357,7 @@ class CardDeck {
         });
     }
 
-    async loadGameState() {
+    loadGameState() {
         const saved = localStorage.getItem('cardDeckGameState');
         if (saved) {
             try {
@@ -1499,22 +1367,8 @@ class CardDeck {
                 this.startingPlayer = gameState.startingPlayer || 1;
                 this.pendingDareForPlayer = gameState.pendingDareForPlayer || null;
                 this.players = gameState.players || this.players;
-                if (gameState.currentCard) {
-                    const card = gameState.currentCard.isDare
-                        ? this.dareCards.find(c => c.id === gameState.currentCard.id)
-                        : this.cards.find(c => c.id === gameState.currentCard.id);
-                    if (card) {
-                        this.currentCard = card;
-                        this.isDareCard = gameState.currentCard.isDare;
-                    }
-                }
-                this.currentDeck = this.cards.filter(c => gameState.currentDeck.includes(c.id));
-                this.currentDareDeck = this.dareCards.filter(c => gameState.currentDareDeck.includes(c.id));
-                this.updateUI();
-                this.displayCurrentCard();
             } catch (error) {
                 console.error('Error loading game state:', error);
-                this.showToast('Failed to load game state', 'error');
             }
         }
     }
@@ -1522,21 +1376,21 @@ class CardDeck {
     showToast(message, type = 'info') {
         const toast = document.getElementById('toast');
         const toastMessage = document.getElementById('toast-message');
-
+        
         toastMessage.textContent = message;
         toast.className = `toast ${type}`;
         toast.classList.remove('hidden');
-
+        
         setTimeout(() => {
             toast.classList.add('hidden');
         }, 3000);
     }
 
     shakeElement(element) {
-        element.style.animation = `shake ${this.ANIMATION_DURATIONS.SHAKE / 1000}s ease`;
+        element.style.animation = 'shake 0.5s ease';
         setTimeout(() => {
             element.style.animation = '';
-        }, this.ANIMATION_DURATIONS.SHAKE);
+        }, 500);
     }
 
     getTypeDisplayName(type) {
@@ -1590,7 +1444,7 @@ class CardDeck {
             'use-wildcard-btn': 'Give opponent a dare',
             'save-wildcard-btn': 'Save for later use'
         };
-
+        
         Object.entries(tooltips).forEach(([id, text]) => {
             const element = document.getElementById(id);
             if (element) {
@@ -1614,20 +1468,20 @@ const animations = `
         25% { transform: translateX(-10px); }
         75% { transform: translateX(10px); }
     }
-
+    
     @keyframes shuffle {
         0% { transform: rotateY(0); }
         50% { transform: rotateY(180deg); }
         100% { transform: rotateY(360deg); }
     }
-
+    
     @keyframes slideOutLeft {
         to {
             transform: translateX(-150%);
             opacity: 0;
         }
     }
-
+    
     @keyframes slideOutRight {
         to {
             transform: translateX(150%);
@@ -1654,4 +1508,3 @@ if ('serviceWorker' in navigator) {
         });
     });
 }
-```
