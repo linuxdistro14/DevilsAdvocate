@@ -179,29 +179,49 @@ class CardDeck {
     }
 
     async loadLevelCards() {
+    try {
+        // Use the backward-compatible endpoint that includes level logic
+        const response = await fetch('/api/cards/shuffle');
+        const data = await response.json();
+        
+        this.cards = data.cards || [];
+        
+        // Ensure all cards have proper score values
+        this.cards = this.cards.map(card => ({
+            ...card,
+            scoreValue: card.type === 'wild_card' ? 0 : (card.scoreValue || this.levelScoreValues[this.currentLevel] || 1)
+        }));
+        
+        // Set current deck
+        this.currentDeck = [...this.cards];
+        this.completedCards = [];
+        
+        // Update deck count display
+        this.updateDeckCount();
+        
+        console.log('Loaded cards for level', this.currentLevel, ':', this.cards.length, 'cards');
+    } catch (error) {
+        console.error('Error loading level cards:', error);
+        // Try fallback approach
         try {
-            const response = await fetch(`/api/cards/level/${this.currentLevel}/available`);
-            const data = await response.json();
-            this.cards = data.cards || [];
+            const fallbackResponse = await fetch(`/api/cards/level/${this.currentLevel}/shuffle`);
+            const fallbackData = await fallbackResponse.json();
             
-            // Ensure all cards have proper score values
+            this.cards = fallbackData.cards || [];
             this.cards = this.cards.map(card => ({
                 ...card,
-                scoreValue: card.type === 'wild_card' ? 0 : this.levelScoreValues[this.currentLevel]
+                scoreValue: card.type === 'wild_card' ? 0 : (card.scoreValue || this.levelScoreValues[this.currentLevel] || 1)
             }));
             
-            // Shuffle the available cards
-            this.currentDeck = this.shuffleArray([...this.cards]);
+            this.currentDeck = [...this.cards];
             this.completedCards = [];
-            
-            // Update deck count display
             this.updateDeckCount();
-        } catch (error) {
-            console.error('Error loading level cards:', error);
+        } catch (fallbackError) {
+            console.error('Fallback also failed:', fallbackError);
             this.showToast('Failed to load cards', 'error');
         }
     }
-
+}
     async loadDareCards() {
         try {
             const response = await fetch('/api/dare-cards/shuffle');
