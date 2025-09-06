@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Digital Card Deck - Two Player Game</title>
+    <title>Devils Advocate - Level-Based Card Game</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,8 +23,8 @@
                     <button id="new-game" class="nav-item" aria-label="Start new game">
                         <span class="nav-icon">🎮</span> New Game
                     </button>
-                    <button id="reset-scores" class="nav-item" aria-label="Reset scores">
-                        <span class="nav-icon">🔄</span> Reset Scores
+                    <button id="reset-scores" class="nav-item" aria-label="Reset all progress">
+                        <span class="nav-icon">🔄</span> Reset All Progress
                     </button>
                     <button id="shuffle-deck" class="nav-item" aria-label="Shuffle deck">
                         <span class="nav-icon">🔀</span> Shuffle
@@ -50,6 +50,20 @@
             <div class="nav-spacer"></div>
         </nav>
 
+        <!-- Level Indicator Bar -->
+        <div class="level-indicator-bar">
+            <div class="level-info">
+                <span class="level-label">Current Level:</span>
+                <span class="level-value" id="current-level-indicator">Level 1</span>
+            </div>
+            <div class="level-progress-container">
+                <div class="level-progress-bar">
+                    <div class="level-progress-fill" id="level-progress"></div>
+                </div>
+                <span class="level-target">Target: <span id="target-score">15</span> points</span>
+            </div>
+        </div>
+
         <header>
             <!-- Compact Player Scores Section -->
             <div class="players-section-compact">
@@ -62,6 +76,10 @@
                         <div class="player-score-compact">
                             <span class="score-value-compact" id="player-1-score">0</span>
                         </div>
+                        <div class="player-rounds-compact">
+                            <span class="rounds-label">Rounds:</span>
+                            <span class="rounds-value" id="player-1-rounds">0</span>
+                        </div>
                         <div class="player-wildcards-compact" id="player-1-wildcards">
                             <span class="wildcard-count">🃏 <span id="player-1-wildcard-count">0</span></span>
                         </div>
@@ -73,6 +91,7 @@
                         <span class="turn-player-compact" id="current-player">Player 1</span>
                     </div>
                     <div class="game-round-compact">
+                        <span class="round-label">Game</span>
                         <span class="round-number-compact" id="game-number">1</span>
                     </div>
                 </div>
@@ -85,6 +104,10 @@
                     <div class="player-stats-compact">
                         <div class="player-score-compact">
                             <span class="score-value-compact" id="player-2-score">0</span>
+                        </div>
+                        <div class="player-rounds-compact">
+                            <span class="rounds-label">Rounds:</span>
+                            <span class="rounds-value" id="player-2-rounds">0</span>
                         </div>
                         <div class="player-wildcards-compact" id="player-2-wildcards">
                             <span class="wildcard-count">🃏 <span id="player-2-wildcard-count">0</span></span>
@@ -111,6 +134,7 @@
                         </div>
                     </div>
                     <p class="instruction-text" id="instruction-text">Click to draw a card</p>
+                    <p class="deck-count" id="deck-count">0 cards remaining</p>
                 </div>
             </div>
 
@@ -185,6 +209,20 @@
             </div>
         </main>
 
+        <!-- Level Complete Modal -->
+        <div id="level-complete-modal" class="modal hidden">
+            <div class="modal-content level-complete-content">
+                <h2 class="level-complete-title">🎉 Level Complete! 🎉</h2>
+                <div class="level-complete-info">
+                    <p class="level-winner"><span id="level-winner-name">Player 1</span> wins Level <span id="current-level-complete">1</span>!</p>
+                    <p class="next-level-info">Get ready for <span id="next-level-name">Level 2</span></p>
+                </div>
+                <div class="level-complete-actions">
+                    <button id="continue-next-level" class="btn btn-continue">Continue to Next Level</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Wildcard Collection Modal -->
         <div id="wildcard-collection-modal" class="modal hidden">
             <div class="modal-content">
@@ -223,15 +261,6 @@
                                 <option value="never_ever">🚫 Never Ever</option>
                                 <option value="kink">🔥 Kink</option>
                                 <option value="wild_card">🃏 Wild Card</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="card-level-input">Level</label>
-                            <select id="card-level-input">
-                                <option value="level 1">Level 1</option>
-                                <option value="level 2">Level 2</option>
-                                <option value="level 3">Level 3</option>
                             </select>
                         </div>
                         
@@ -301,7 +330,7 @@
         <div id="manage-modal" class="modal hidden">
             <div class="modal-content modal-wide">
                 <button class="modal-close" aria-label="Close modal">&times;</button>
-                <h2>Manage Cards</h2>
+                <h2>Manage Cards - <span class="current-level-label">Level 1</span></h2>
                 <div class="manage-controls">
                     <input type="text" id="search-cards" placeholder="Search cards..." class="search-input">
                     <select id="filter-type" class="filter-select">
@@ -339,17 +368,17 @@
         <!-- Winner Modal -->
         <div id="winner-modal" class="modal hidden">
             <div class="modal-content winner-content">
-                <h2 class="winner-title">🏆 Game Over! 🏆</h2>
+                <h2 class="winner-title">🏆 Game Complete! 🏆</h2>
                 <div class="winner-info">
                     <div class="winner-name" id="winner-name">Player 1 Wins!</div>
                     <div class="final-scores">
                         <div class="final-score-item">
                             <span id="final-player-1-name">Player 1</span>: 
-                            <span id="final-player-1-score">0</span> points
+                            <span id="final-player-1-rounds">0 rounds won</span>
                         </div>
                         <div class="final-score-item">
                             <span id="final-player-2-name">Player 2</span>: 
-                            <span id="final-player-2-score">0</span> points
+                            <span id="final-player-2-rounds">0 rounds won</span>
                         </div>
                     </div>
                 </div>
