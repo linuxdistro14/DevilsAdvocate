@@ -29,7 +29,7 @@ def load_level_cards(level):
     """Load cards for a specific level"""
     level_files = {
         1: 'cards/easy_cards.json',
-        2: 'cards/med_cards.json',  # Changed back to med_cards.json as per original
+        2: 'cards/med_cards.json',
         3: 'cards/hard_cards.json'
     }
     
@@ -90,7 +90,7 @@ def load_all_cards():
 def save_level_cards(cards_data, level):
     level_files = {
         1: 'cards/easy_cards.json',
-        2: 'cards/med_cards.json',  # Changed back to med_cards.json
+        2: 'cards/med_cards.json',
         3: 'cards/hard_cards.json'
     }
     
@@ -114,24 +114,47 @@ def index():
     init_session_data()
     return render_template('index.html')
 
-# IMPORTANT: Backward compatibility endpoints MUST come first
+# Backward compatibility endpoints
 @app.route('/api/cards', methods=['GET'])
 def get_cards():
     """Get all main cards (backward compatibility)"""
     init_session_data()
     current_level = session.get('current_level', 1)
+    
+    # Try to load level-specific cards first
     cards_data = load_level_cards(current_level)
+    
+    # If no level-specific cards, load all cards
+    if not cards_data.get('cards'):
+        cards_data = load_all_cards()
+    
     return jsonify(cards_data)
 
 @app.route('/api/cards/shuffle', methods=['GET'])
 def get_shuffled_cards():
-    """Get shuffled deck of main cards (backward compatibility)"""
+    """Get shuffled deck of main cards with level support"""
     init_session_data()
     current_level = session.get('current_level', 1)
     
-    # Load cards for current level
+    # Try level-specific cards first
     cards_data = load_level_cards(current_level)
     all_cards = cards_data.get('cards', [])
+    
+    # If no level-specific cards, use all cards and filter by level
+    if not all_cards:
+        cards_data = load_all_cards()
+        all_cards = cards_data.get('cards', [])
+        
+        # If we have cards with level field, filter them
+        if all_cards and 'level' in all_cards[0]:
+            level_map = {1: 'level 1', 2: 'level 2', 3: 'level 3'}
+            level_str = level_map.get(current_level, 'level 1')
+            all_cards = [c for c in all_cards if c.get('level') == level_str]
+    
+    # If still no cards, just return all available cards
+    if not all_cards:
+        cards_data = load_all_cards()
+        all_cards = cards_data.get('cards', [])
     
     # Filter out used cards
     level_key = f'level_{current_level}'
@@ -163,31 +186,16 @@ def get_level_cards(level):
         level = 1
     
     cards_data = load_level_cards(level)
+    
+    # If no level-specific cards, try to get from main cards file
+    if not cards_data.get('cards'):
+        all_cards_data = load_all_cards()
+        level_map = {1: 'level 1', 2: 'level 2', 3: 'level 3'}
+        level_str = level_map.get(level, 'level 1')
+        filtered_cards = [c for c in all_cards_data.get('cards', []) if c.get('level') == level_str]
+        cards_data = {"cards": filtered_cards}
+    
     return jsonify(cards_data)
-
-@app.route('/api/cards/level/<int:level>/available', methods=['GET'])
-def get_available_level_cards(level):
-    """Get available (unused) cards for a specific level"""
-    init_session_data()
-    
-    if level not in [1, 2, 3]:
-        level = 1
-    
-    cards_data = load_level_cards(level)
-    all_cards = cards_data.get('cards', [])
-    
-    # Filter out used cards
-    level_key = f'level_{level}'
-    used_card_ids = session.get('used_cards', {}).get(level_key, [])
-    available_cards = [c for c in all_cards if c.get('id') not in used_card_ids]
-    
-    # If no cards available, reset and return all cards
-    if not available_cards and all_cards:
-        session['used_cards'][level_key] = []
-        session.modified = True
-        available_cards = all_cards
-    
-    return jsonify({'cards': available_cards, 'total': len(all_cards), 'available': len(available_cards)})
 
 @app.route('/api/cards/level/<int:level>/shuffle', methods=['GET'])
 def get_shuffled_level_cards(level):
@@ -199,6 +207,18 @@ def get_shuffled_level_cards(level):
     
     cards_data = load_level_cards(level)
     all_cards = cards_data.get('cards', [])
+    
+    # If no cards found, try loading all cards and filter by level
+    if not all_cards:
+        all_cards_data = load_all_cards()
+        level_map = {1: 'level 1', 2: 'level 2', 3: 'level 3'}
+        level_str = level_map.get(level, 'level 1')
+        all_cards = [c for c in all_cards_data.get('cards', []) if c.get('level') == level_str]
+    
+    # If still no cards, just use all cards
+    if not all_cards:
+        all_cards_data = load_all_cards()
+        all_cards = all_cards_data.get('cards', [])
     
     # Filter out used cards
     level_key = f'level_{level}'
@@ -270,11 +290,17 @@ def get_dare_card(card_id):
 
 @app.route('/api/cards', methods=['POST'])
 def add_card():
-    """Add a new card (backward compatibility - adds to current level)"""
+    """Add a new card (backward compatibility)"""
     init_session_data()
     current_level = session.get('current_level', 1)
     
+    # First try to add to level-specific file
     cards_data = load_level_cards(current_level)
+    
+    # If no level file exists, use main cards file
+    if not cards_data.get('cards'):
+        cards_data = load_all_cards()
+    
     new_card = request.json
     
     # Validate required fields
@@ -303,7 +329,16 @@ def add_card():
     
     cards.append(new_card)
     cards_data['cards'] = cards
-    save_level_cards(cards_data, current_level)
+    
+    # Save to appropriate file
+    level_files_exist = Path('cards/easy_cards.json').exists() or Path('cards/med_cards.json').exists() or Path('cards/hard_cards.json').exists()
+    
+    if level_files_exist:
+        save_level_cards(cards_data, current_level)
+    else:
+        # Save to main cards file
+        with open('cards.json', 'w', encoding='utf-8') as f:
+            json.dump(cards_data, f, indent=2, ensure_ascii=False)
     
     return jsonify(new_card), 201
 
@@ -369,10 +404,7 @@ def add_dare_card():
 @app.route('/api/cards/<int:card_id>', methods=['PUT'])
 def update_card(card_id):
     """Update existing main card (backward compatibility)"""
-    init_session_data()
-    current_level = session.get('current_level', 1)
-    
-    cards_data = load_level_cards(current_level)
+    cards_data = load_all_cards()
     cards = cards_data.get('cards', [])
     
     for i, card in enumerate(cards):
@@ -383,13 +415,13 @@ def update_card(card_id):
             # Update score value if type or level changed
             if 'type' in request.json or 'level' in request.json:
                 card_type = updated_card.get('type', 'truth')
-                card_level = updated_card.get('level', f'level {current_level}')
+                card_level = updated_card.get('level', 'level 1')
                 
                 score_values = {
-                    'truth': {'level 1': 1, 'level 2': 2, 'level 3': 3},
-                    'dare': {'level 1': 1, 'level 2': 2, 'level 3': 3},
-                    'never_ever': {'level 1': 1, 'level 2': 2, 'level 3': 3},
-                    'kink': {'level 1': 2, 'level 2': 3, 'level 3': 4},
+                    'truth': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+                    'dare': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+                    'never_ever': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+                    'kink': {'level 1': 2, 'level 2': 4, 'level 3': 6},
                     'wild_card': {'level 1': 0, 'level 2': 0, 'level 3': 0}
                 }
                 
@@ -397,7 +429,10 @@ def update_card(card_id):
             
             cards[i] = updated_card
             cards_data['cards'] = cards
-            save_level_cards(cards_data, current_level)
+            
+            # Save to main cards file
+            with open('cards.json', 'w', encoding='utf-8') as f:
+                json.dump(cards_data, f, indent=2, ensure_ascii=False)
             
             return jsonify(cards[i])
     
@@ -455,17 +490,15 @@ def update_dare_card(card_id):
 @app.route('/api/cards/<int:card_id>', methods=['DELETE'])
 def delete_card(card_id):
     """Delete a main card (backward compatibility)"""
-    init_session_data()
-    current_level = session.get('current_level', 1)
-    
-    cards_data = load_level_cards(current_level)
+    cards_data = load_all_cards()
     cards = cards_data.get('cards', [])
     
     original_length = len(cards)
     cards_data['cards'] = [c for c in cards if c['id'] != card_id]
     
     if len(cards_data['cards']) < original_length:
-        save_level_cards(cards_data, current_level)
+        with open('cards.json', 'w', encoding='utf-8') as f:
+            json.dump(cards_data, f, indent=2, ensure_ascii=False)
         return jsonify({'message': 'Card deleted successfully'}), 200
     
     return jsonify({'error': 'Card not found'}), 404
@@ -634,13 +667,6 @@ def save_game_state():
 def get_game_state():
     """Get current game state"""
     return jsonify(session.get('game_state', {}))
-
-@app.route('/api/session/reset', methods=['POST'])
-def reset_session():
-    """Reset session data"""
-    session.clear()
-    init_session_data()
-    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
