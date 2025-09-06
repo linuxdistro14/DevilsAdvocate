@@ -4,651 +4,347 @@ import random
 from pathlib import Path
 from datetime import datetime
 import uuid
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
 
-# Initialize session data for card tracking
-def init_session_data():
-    """Initialize session data for tracking used cards"""
-    if 'used_cards' not in session:
-        session['used_cards'] = {
-            'level_1': [],
-            'level_2': [],
-            'level_3': []
-        }
-    if 'session_id' not in session:
-        session['session_id'] = str(uuid.uuid4())
-    if 'current_level' not in session:
-        session['current_level'] = 1
-    if 'round_wins' not in session:
-        session['round_wins'] = {'player_1': 0, 'player_2': 0}
-
-# Load cards from level-specific JSON files OR fallback to old structure
-def load_level_cards(level):
-    """Load cards for a specific level"""
-    level_files = {
-        1: 'cards/easy_cards.json',
-        2: 'cards/med_cards.json',
-        3: 'cards/hard_cards.json'
-    }
-    
-    cards_file = Path(level_files.get(level, 'cards/easy_cards.json'))
-    
-    # First try to load from level-specific file
-    if cards_file.exists():
-        with open(cards_file, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            return data
-    
-    # Fallback to old cards.json structure if level files don't exist
-    old_cards_file = Path('cards.json')
-    if old_cards_file.exists():
-        with open(old_cards_file, 'r', encoding='utf-8') as f:
-            all_cards = json.load(f)
-            # Filter cards by level
-            level_map = {1: 'level 1', 2: 'level 2', 3: 'level 3'}
-            level_str = level_map.get(level, 'level 1')
-            filtered_cards = [c for c in all_cards.get('cards', []) if c.get('level') == level_str]
-            return {"cards": filtered_cards}
-    
-    return {"cards": []}
-
-# Load dare cards from JSON file
-def load_dare_cards():
-    # Try new location first
-    dare_cards_file = Path('cards/dare_cards.json')
-    if dare_cards_file.exists():
-        with open(dare_cards_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    
-    # Fallback to old location
-    dare_cards_file = Path('dare_cards.json')
-    if dare_cards_file.exists():
-        with open(dare_cards_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    
-    return {"cards": []}
-
-# Load all cards (for backward compatibility)
-def load_all_cards():
-    """Load all cards for backward compatibility"""
+# Load cards from JSON file
+def load_cards():
     cards_file = Path('cards.json')
     if cards_file.exists():
-        with open(cards_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    
-    # Try to combine from level files
-    all_cards = []
-    for level in [1, 2, 3]:
-        level_data = load_level_cards(level)
-        all_cards.extend(level_data.get('cards', []))
-    
-    return {"cards": all_cards}
+        try:
+            with open(cards_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                logger.info(f"Loaded {len(data.get('cards', []))} main cards")
+                return data
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.error(f"Error loading cards: {e}")
+            return {"cards": []}
+    return {"cards": []}
 
-# Save cards to level-specific JSON file
-def save_level_cards(cards_data, level):
-    level_files = {
-        1: 'cards/easy_cards.json',
-        2: 'cards/med_cards.json',
-        3: 'cards/hard_cards.json'
-    }
-    
-    cards_file = level_files.get(level)
-    if cards_file:
-        # Create directory if it doesn't exist
-        Path('cards').mkdir(exist_ok=True)
-        with open(cards_file, 'w', encoding='utf-8') as f:
+# Load dare cards from JSON file (separate from main deck)
+def load_dare_cards():
+    dare_cards_file = Path('dare_cards.json')
+    if dare_cards_file.exists():
+        try:
+            with open(dare_cards_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                logger.info(f"Loaded {len(data.get('cards', []))} dare cards")
+                return data
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.error(f"Error loading dare cards: {e}")
+            return {"cards": []}
+    return {"cards": []}
+
+# Save cards to JSON file
+def save_cards(cards_data):
+    try:
+        with open('cards.json', 'w', encoding='utf-8') as f:
             json.dump(cards_data, f, indent=2, ensure_ascii=False)
+        logger.info("Main cards saved successfully")
+    except Exception as e:
+        logger.error(f"Error saving cards: {e}")
+        raise
 
 # Save dare cards to JSON file
 def save_dare_cards(dare_cards_data):
-    # Create directory if it doesn't exist
-    Path('cards').mkdir(exist_ok=True)
-    with open('cards/dare_cards.json', 'w', encoding='utf-8') as f:
-        json.dump(dare_cards_data, f, indent=2, ensure_ascii=False)
+    try:
+        with open('dare_cards.json', 'w', encoding='utf-8') as f:
+            json.dump(dare_cards_data, f, indent=2, ensure_ascii=False)
+        logger.info("Dare cards saved successfully")
+    except Exception as e:
+        logger.error(f"Error saving dare cards: {e}")
+        raise
 
 @app.route('/')
 def index():
     # Initialize session ID if not exists
-    init_session_data()
+    if 'session_id' not in session:
+        session['session_id'] = str(uuid.uuid4())
     return render_template('index.html')
 
-# Backward compatibility endpoints
 @app.route('/api/cards', methods=['GET'])
 def get_cards():
-    """Get all main cards (backward compatibility)"""
-    init_session_data()
-    current_level = session.get('current_level', 1)
-    
-    # Try to load level-specific cards first
-    cards_data = load_level_cards(current_level)
-    
-    # If no level-specific cards, load all cards
-    if not cards_data.get('cards'):
-        cards_data = load_all_cards()
-    
-    return jsonify(cards_data)
-
-@app.route('/api/cards/shuffle', methods=['GET'])
-def get_shuffled_cards():
-    """Get shuffled deck of main cards with level support"""
-    init_session_data()
-    current_level = session.get('current_level', 1)
-    
-    # Try level-specific cards first
-    cards_data = load_level_cards(current_level)
-    all_cards = cards_data.get('cards', [])
-    
-    # If no level-specific cards, use all cards and filter by level
-    if not all_cards:
-        cards_data = load_all_cards()
-        all_cards = cards_data.get('cards', [])
-        
-        # If we have cards with level field, filter them
-        if all_cards and 'level' in all_cards[0]:
-            level_map = {1: 'level 1', 2: 'level 2', 3: 'level 3'}
-            level_str = level_map.get(current_level, 'level 1')
-            all_cards = [c for c in all_cards if c.get('level') == level_str]
-    
-    # If still no cards, just return all available cards
-    if not all_cards:
-        cards_data = load_all_cards()
-        all_cards = cards_data.get('cards', [])
-    
-    # Filter out used cards
-    level_key = f'level_{current_level}'
-    used_card_ids = session.get('used_cards', {}).get(level_key, [])
-    available_cards = [c for c in all_cards if c.get('id') not in used_card_ids]
-    
-    # If no cards available, reset and use all cards
-    if not available_cards and all_cards:
-        session['used_cards'][level_key] = []
-        session.modified = True
-        available_cards = all_cards
-    
-    # Shuffle available cards
-    shuffled_cards = random.sample(available_cards, len(available_cards)) if available_cards else []
-    
-    return jsonify({
-        'cards': shuffled_cards,
-        'level': current_level,
-        'total': len(all_cards),
-        'available': len(shuffled_cards)
-    })
-
-# New level-based endpoints
-@app.route('/api/cards/level/<int:level>', methods=['GET'])
-def get_level_cards(level):
-    """Get all cards for a specific level"""
-    init_session_data()
-    if level not in [1, 2, 3]:
-        level = 1
-    
-    cards_data = load_level_cards(level)
-    
-    # If no level-specific cards, try to get from main cards file
-    if not cards_data.get('cards'):
-        all_cards_data = load_all_cards()
-        level_map = {1: 'level 1', 2: 'level 2', 3: 'level 3'}
-        level_str = level_map.get(level, 'level 1')
-        filtered_cards = [c for c in all_cards_data.get('cards', []) if c.get('level') == level_str]
-        cards_data = {"cards": filtered_cards}
-    
-    return jsonify(cards_data)
-
-@app.route('/api/cards/level/<int:level>/shuffle', methods=['GET'])
-def get_shuffled_level_cards(level):
-    """Get shuffled deck for a specific level"""
-    init_session_data()
-    
-    if level not in [1, 2, 3]:
-        level = 1
-    
-    cards_data = load_level_cards(level)
-    all_cards = cards_data.get('cards', [])
-    
-    # If no cards found, try loading all cards and filter by level
-    if not all_cards:
-        all_cards_data = load_all_cards()
-        level_map = {1: 'level 1', 2: 'level 2', 3: 'level 3'}
-        level_str = level_map.get(level, 'level 1')
-        all_cards = [c for c in all_cards_data.get('cards', []) if c.get('level') == level_str]
-    
-    # If still no cards, just use all cards
-    if not all_cards:
-        all_cards_data = load_all_cards()
-        all_cards = all_cards_data.get('cards', [])
-    
-    # Filter out used cards
-    level_key = f'level_{level}'
-    used_card_ids = session.get('used_cards', {}).get(level_key, [])
-    available_cards = [c for c in all_cards if c.get('id') not in used_card_ids]
-    
-    # If no cards available, reset and use all cards
-    if not available_cards and all_cards:
-        session['used_cards'][level_key] = []
-        session.modified = True
-        available_cards = all_cards
-    
-    # Shuffle available cards
-    shuffled_cards = random.sample(available_cards, len(available_cards)) if available_cards else []
-    
-    return jsonify({
-        'cards': shuffled_cards,
-        'level': level,
-        'total': len(all_cards),
-        'available': len(shuffled_cards)
-    })
+    """Get all main cards (excludes dare cards)"""
+    try:
+        cards_data = load_cards()
+        return jsonify(cards_data)
+    except Exception as e:
+        logger.error(f"Error getting cards: {e}")
+        return jsonify({'error': 'Failed to load cards'}), 500
 
 @app.route('/api/dare-cards', methods=['GET'])
 def get_dare_cards():
-    """Get all dare cards"""
-    dare_cards_data = load_dare_cards()
-    return jsonify(dare_cards_data)
+    """Get all dare cards (separate from main deck)"""
+    try:
+        dare_cards_data = load_dare_cards()
+        return jsonify(dare_cards_data)
+    except Exception as e:
+        logger.error(f"Error getting dare cards: {e}")
+        return jsonify({'error': 'Failed to load dare cards'}), 500
+
+@app.route('/api/cards/shuffle', methods=['GET'])
+def get_shuffled_cards():
+    """Get shuffled deck of main cards only"""
+    try:
+        cards_data = load_cards()
+        cards = cards_data.get('cards', [])
+        shuffled_cards = random.sample(cards, len(cards)) if cards else []
+        return jsonify({'cards': shuffled_cards})
+    except Exception as e:
+        logger.error(f"Error shuffling cards: {e}")
+        return jsonify({'error': 'Failed to shuffle cards'}), 500
 
 @app.route('/api/dare-cards/shuffle', methods=['GET'])
 def get_shuffled_dare_cards():
     """Get shuffled deck of dare cards"""
-    dare_cards_data = load_dare_cards()
-    dare_cards = dare_cards_data.get('cards', [])
-    shuffled_dare_cards = random.sample(dare_cards, len(dare_cards)) if dare_cards else []
-    return jsonify({'cards': shuffled_dare_cards})
+    try:
+        dare_cards_data = load_dare_cards()
+        dare_cards = dare_cards_data.get('cards', [])
+        shuffled_dare_cards = random.sample(dare_cards, len(dare_cards)) if dare_cards else []
+        return jsonify({'cards': shuffled_dare_cards})
+    except Exception as e:
+        logger.error(f"Error shuffling dare cards: {e}")
+        return jsonify({'error': 'Failed to shuffle dare cards'}), 500
 
 @app.route('/api/cards/<int:card_id>', methods=['GET'])
 def get_card(card_id):
-    """Get specific main card by ID (backward compatibility)"""
-    cards_data = load_all_cards()
-    cards = cards_data.get('cards', [])
-    for card in cards:
-        if card['id'] == card_id:
-            return jsonify(card)
-    return jsonify({'error': 'Card not found'}), 404
-
-@app.route('/api/cards/<int:card_id>/level/<int:level>', methods=['GET'])
-def get_level_card(card_id, level):
-    """Get specific card by ID from level"""
-    if level not in [1, 2, 3]:
-        level = 1
-    
-    cards_data = load_level_cards(level)
-    cards = cards_data.get('cards', [])
-    for card in cards:
-        if card['id'] == card_id:
-            return jsonify(card)
-    return jsonify({'error': 'Card not found'}), 404
+    """Get specific main card by ID"""
+    try:
+        cards_data = load_cards()
+        cards = cards_data.get('cards', [])
+        for card in cards:
+            if card['id'] == card_id:
+                return jsonify(card)
+        return jsonify({'error': 'Card not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting card {card_id}: {e}")
+        return jsonify({'error': 'Failed to get card'}), 500
 
 @app.route('/api/dare-cards/<int:card_id>', methods=['GET'])
 def get_dare_card(card_id):
     """Get specific dare card by ID"""
-    dare_cards_data = load_dare_cards()
-    dare_cards = dare_cards_data.get('cards', [])
-    for card in dare_cards:
-        if card['id'] == card_id:
-            return jsonify(card)
-    return jsonify({'error': 'Dare card not found'}), 404
+    try:
+        dare_cards_data = load_dare_cards()
+        dare_cards = dare_cards_data.get('cards', [])
+        for card in dare_cards:
+            if card['id'] == card_id:
+                return jsonify(card)
+        return jsonify({'error': 'Dare card not found'}), 404
+    except Exception as e:
+        logger.error(f"Error getting dare card {card_id}: {e}")
+        return jsonify({'error': 'Failed to get dare card'}), 500
 
 @app.route('/api/cards', methods=['POST'])
 def add_card():
-    """Add a new card (backward compatibility)"""
-    init_session_data()
-    current_level = session.get('current_level', 1)
-    
-    # First try to add to level-specific file
-    cards_data = load_level_cards(current_level)
-    
-    # If no level file exists, use main cards file
-    if not cards_data.get('cards'):
-        cards_data = load_all_cards()
-    
-    new_card = request.json
-    
-    # Validate required fields
-    if not new_card.get('title') or not new_card.get('content'):
-        return jsonify({'error': 'Title and content are required'}), 400
-    
-    # Generate new ID
-    cards = cards_data.get('cards', [])
-    new_id = max([c.get('id', 0) for c in cards], default=0) + 1
-    new_card['id'] = new_id
-    new_card['created_at'] = datetime.now().isoformat()
-    
-    # Assign score value based on type and level
-    card_type = new_card.get('type', 'truth')
-    card_level = new_card.get('level', f'level {current_level}')
-    
-    score_values = {
-        'truth': {'level 1': 1, 'level 2': 2, 'level 3': 3},
-        'dare': {'level 1': 1, 'level 2': 2, 'level 3': 3},
-        'never_ever': {'level 1': 1, 'level 2': 2, 'level 3': 3},
-        'kink': {'level 1': 2, 'level 2': 3, 'level 3': 4},
-        'wild_card': {'level 1': 0, 'level 2': 0, 'level 3': 0}
-    }
-    
-    new_card['scoreValue'] = score_values.get(card_type, {}).get(card_level, 1)
-    
-    cards.append(new_card)
-    cards_data['cards'] = cards
-    
-    # Save to appropriate file
-    level_files_exist = Path('cards/easy_cards.json').exists() or Path('cards/med_cards.json').exists() or Path('cards/hard_cards.json').exists()
-    
-    if level_files_exist:
-        save_level_cards(cards_data, current_level)
-    else:
-        # Save to main cards file
-        with open('cards.json', 'w', encoding='utf-8') as f:
-            json.dump(cards_data, f, indent=2, ensure_ascii=False)
-    
-    return jsonify(new_card), 201
-
-@app.route('/api/cards/level/<int:level>', methods=['POST'])
-def add_level_card(level):
-    """Add a new card to specific level"""
-    if level not in [1, 2, 3]:
-        return jsonify({'error': 'Invalid level'}), 400
-    
-    cards_data = load_level_cards(level)
-    new_card = request.json
-    
-    # Validate required fields
-    if not new_card.get('title') or not new_card.get('content'):
-        return jsonify({'error': 'Title and content are required'}), 400
-    
-    # Generate new ID
-    cards = cards_data.get('cards', [])
-    new_id = max([c.get('id', 0) for c in cards], default=0) + 1
-    new_card['id'] = new_id
-    new_card['created_at'] = datetime.now().isoformat()
-    
-    # Set level-specific attributes
-    new_card['level'] = f'level {level}'
-    
-    # Assign score value based on level
-    level_scores = {1: 1, 2: 2, 3: 3}
-    if new_card.get('type') == 'wild_card':
-        new_card['scoreValue'] = 0
-    else:
-        new_card['scoreValue'] = level_scores.get(level, 1)
-    
-    cards.append(new_card)
-    cards_data['cards'] = cards
-    save_level_cards(cards_data, level)
-    
-    return jsonify(new_card), 201
+    """Add a new main card"""
+    try:
+        cards_data = load_cards()
+        new_card = request.json
+        
+        # Validate required fields
+        if not new_card.get('title') or not new_card.get('content'):
+            return jsonify({'error': 'Title and content are required'}), 400
+        
+        # Sanitize input
+        new_card['title'] = new_card['title'].strip()[:50]
+        new_card['content'] = new_card['content'].strip()[:300]
+        
+        # Generate new ID
+        cards = cards_data.get('cards', [])
+        new_id = max([c.get('id', 0) for c in cards], default=0) + 1
+        new_card['id'] = new_id
+        new_card['created_at'] = datetime.now().isoformat()
+        
+        # Assign score value based on type and level
+        card_type = new_card.get('type', 'truth')
+        card_level = new_card.get('level', 'level 1')
+        
+        score_values = {
+            'truth': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+            'dare': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+            'never_ever': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+            'kink': {'level 1': 2, 'level 2': 4, 'level 3': 6},
+            'wild_card': {'level 1': 0, 'level 2': 0, 'level 3': 0}
+        }
+        
+        new_card['scoreValue'] = score_values.get(card_type, {}).get(card_level, 1)
+        
+        cards.append(new_card)
+        cards_data['cards'] = cards
+        save_cards(cards_data)
+        
+        return jsonify(new_card), 201
+    except Exception as e:
+        logger.error(f"Error adding card: {e}")
+        return jsonify({'error': 'Failed to add card'}), 500
 
 @app.route('/api/dare-cards', methods=['POST'])
 def add_dare_card():
     """Add a new dare card"""
-    dare_cards_data = load_dare_cards()
-    new_card = request.json
-    
-    # Validate required fields
-    if not new_card.get('title') or not new_card.get('content'):
-        return jsonify({'error': 'Title and content are required'}), 400
-    
-    # Generate new ID
-    dare_cards = dare_cards_data.get('cards', [])
-    new_id = max([c.get('id', 0) for c in dare_cards], default=0) + 1
-    new_card['id'] = new_id
-    new_card['created_at'] = datetime.now().isoformat()
-    new_card['type'] = 'dare'
-    new_card['scoreValue'] = 0  # Dare cards don't award points
-    
-    dare_cards.append(new_card)
-    dare_cards_data['cards'] = dare_cards
-    save_dare_cards(dare_cards_data)
-    
-    return jsonify(new_card), 201
+    try:
+        dare_cards_data = load_dare_cards()
+        new_card = request.json
+        
+        # Validate required fields
+        if not new_card.get('title') or not new_card.get('content'):
+            return jsonify({'error': 'Title and content are required'}), 400
+        
+        # Sanitize input
+        new_card['title'] = new_card['title'].strip()[:50]
+        new_card['content'] = new_card['content'].strip()[:300]
+        
+        # Generate new ID
+        dare_cards = dare_cards_data.get('cards', [])
+        new_id = max([c.get('id', 0) for c in dare_cards], default=0) + 1
+        new_card['id'] = new_id
+        new_card['created_at'] = datetime.now().isoformat()
+        new_card['type'] = 'dare'
+        new_card['scoreValue'] = 0  # Dare cards don't award points
+        
+        # Set default difficulty if not provided
+        if 'difficulty' not in new_card:
+            new_card['difficulty'] = 'easy'
+        
+        dare_cards.append(new_card)
+        dare_cards_data['cards'] = dare_cards
+        save_dare_cards(dare_cards_data)
+        
+        return jsonify(new_card), 201
+    except Exception as e:
+        logger.error(f"Error adding dare card: {e}")
+        return jsonify({'error': 'Failed to add dare card'}), 500
 
 @app.route('/api/cards/<int:card_id>', methods=['PUT'])
 def update_card(card_id):
-    """Update existing main card (backward compatibility)"""
-    cards_data = load_all_cards()
-    cards = cards_data.get('cards', [])
-    
-    for i, card in enumerate(cards):
-        if card['id'] == card_id:
-            updated_card = {**card, **request.json, 'id': card_id}
-            updated_card['updated_at'] = datetime.now().isoformat()
-            
-            # Update score value if type or level changed
-            if 'type' in request.json or 'level' in request.json:
-                card_type = updated_card.get('type', 'truth')
-                card_level = updated_card.get('level', 'level 1')
+    """Update existing main card"""
+    try:
+        cards_data = load_cards()
+        cards = cards_data.get('cards', [])
+        
+        for i, card in enumerate(cards):
+            if card['id'] == card_id:
+                updated_data = request.json
                 
-                score_values = {
-                    'truth': {'level 1': 1, 'level 2': 2, 'level 3': 4},
-                    'dare': {'level 1': 1, 'level 2': 2, 'level 3': 4},
-                    'never_ever': {'level 1': 1, 'level 2': 2, 'level 3': 4},
-                    'kink': {'level 1': 2, 'level 2': 4, 'level 3': 6},
-                    'wild_card': {'level 1': 0, 'level 2': 0, 'level 3': 0}
-                }
+                # Sanitize input
+                if 'title' in updated_data:
+                    updated_data['title'] = updated_data['title'].strip()[:50]
+                if 'content' in updated_data:
+                    updated_data['content'] = updated_data['content'].strip()[:300]
                 
-                updated_card['scoreValue'] = score_values.get(card_type, {}).get(card_level, 1)
-            
-            cards[i] = updated_card
-            cards_data['cards'] = cards
-            
-            # Save to main cards file
-            with open('cards.json', 'w', encoding='utf-8') as f:
-                json.dump(cards_data, f, indent=2, ensure_ascii=False)
-            
-            return jsonify(cards[i])
-    
-    return jsonify({'error': 'Card not found'}), 404
-
-@app.route('/api/cards/<int:card_id>/level/<int:level>', methods=['PUT'])
-def update_level_card(card_id, level):
-    """Update existing card in specific level"""
-    if level not in [1, 2, 3]:
-        return jsonify({'error': 'Invalid level'}), 400
-    
-    cards_data = load_level_cards(level)
-    cards = cards_data.get('cards', [])
-    
-    for i, card in enumerate(cards):
-        if card['id'] == card_id:
-            updated_card = {**card, **request.json, 'id': card_id}
-            updated_card['updated_at'] = datetime.now().isoformat()
-            updated_card['level'] = f'level {level}'
-            
-            # Update score value based on level
-            level_scores = {1: 1, 2: 2, 3: 3}
-            if updated_card.get('type') == 'wild_card':
-                updated_card['scoreValue'] = 0
-            else:
-                updated_card['scoreValue'] = level_scores.get(level, 1)
-            
-            cards[i] = updated_card
-            cards_data['cards'] = cards
-            save_level_cards(cards_data, level)
-            return jsonify(cards[i])
-    
-    return jsonify({'error': 'Card not found'}), 404
+                updated_card = {**card, **updated_data, 'id': card_id}
+                updated_card['updated_at'] = datetime.now().isoformat()
+                
+                # Update score value if type or level changed
+                if 'type' in updated_data or 'level' in updated_data:
+                    card_type = updated_card.get('type', 'truth')
+                    card_level = updated_card.get('level', 'level 1')
+                    
+                    score_values = {
+                        'truth': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+                        'dare': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+                        'never_ever': {'level 1': 1, 'level 2': 2, 'level 3': 4},
+                        'kink': {'level 1': 2, 'level 2': 4, 'level 3': 6},
+                        'wild_card': {'level 1': 0, 'level 2': 0, 'level 3': 0}
+                    }
+                    
+                    updated_card['scoreValue'] = score_values.get(card_type, {}).get(card_level, 1)
+                
+                cards[i] = updated_card
+                cards_data['cards'] = cards
+                save_cards(cards_data)
+                return jsonify(cards[i])
+        
+        return jsonify({'error': 'Card not found'}), 404
+    except Exception as e:
+        logger.error(f"Error updating card {card_id}: {e}")
+        return jsonify({'error': 'Failed to update card'}), 500
 
 @app.route('/api/dare-cards/<int:card_id>', methods=['PUT'])
 def update_dare_card(card_id):
     """Update existing dare card"""
-    dare_cards_data = load_dare_cards()
-    dare_cards = dare_cards_data.get('cards', [])
-    
-    for i, card in enumerate(dare_cards):
-        if card['id'] == card_id:
-            updated_card = {**card, **request.json, 'id': card_id}
-            updated_card['updated_at'] = datetime.now().isoformat()
-            updated_card['type'] = 'dare'
-            updated_card['scoreValue'] = 0
-            
-            dare_cards[i] = updated_card
-            dare_cards_data['cards'] = dare_cards
-            save_dare_cards(dare_cards_data)
-            return jsonify(dare_cards[i])
-    
-    return jsonify({'error': 'Dare card not found'}), 404
+    try:
+        dare_cards_data = load_dare_cards()
+        dare_cards = dare_cards_data.get('cards', [])
+        
+        for i, card in enumerate(dare_cards):
+            if card['id'] == card_id:
+                updated_data = request.json
+                
+                # Sanitize input
+                if 'title' in updated_data:
+                    updated_data['title'] = updated_data['title'].strip()[:50]
+                if 'content' in updated_data:
+                    updated_data['content'] = updated_data['content'].strip()[:300]
+                
+                updated_card = {**card, **updated_data, 'id': card_id}
+                updated_card['updated_at'] = datetime.now().isoformat()
+                updated_card['type'] = 'dare'
+                updated_card['scoreValue'] = 0
+                
+                dare_cards[i] = updated_card
+                dare_cards_data['cards'] = dare_cards
+                save_dare_cards(dare_cards_data)
+                return jsonify(dare_cards[i])
+        
+        return jsonify({'error': 'Dare card not found'}), 404
+    except Exception as e:
+        logger.error(f"Error updating dare card {card_id}: {e}")
+        return jsonify({'error': 'Failed to update dare card'}), 500
 
 @app.route('/api/cards/<int:card_id>', methods=['DELETE'])
 def delete_card(card_id):
-    """Delete a main card (backward compatibility)"""
-    cards_data = load_all_cards()
-    cards = cards_data.get('cards', [])
-    
-    original_length = len(cards)
-    cards_data['cards'] = [c for c in cards if c['id'] != card_id]
-    
-    if len(cards_data['cards']) < original_length:
-        with open('cards.json', 'w', encoding='utf-8') as f:
-            json.dump(cards_data, f, indent=2, ensure_ascii=False)
-        return jsonify({'message': 'Card deleted successfully'}), 200
-    
-    return jsonify({'error': 'Card not found'}), 404
-
-@app.route('/api/cards/<int:card_id>/level/<int:level>', methods=['DELETE'])
-def delete_level_card(card_id, level):
-    """Delete a card from specific level"""
-    if level not in [1, 2, 3]:
-        return jsonify({'error': 'Invalid level'}), 400
-    
-    cards_data = load_level_cards(level)
-    cards = cards_data.get('cards', [])
-    
-    original_length = len(cards)
-    cards_data['cards'] = [c for c in cards if c['id'] != card_id]
-    
-    if len(cards_data['cards']) < original_length:
-        save_level_cards(cards_data, level)
-        return jsonify({'message': 'Card deleted successfully'}), 200
-    
-    return jsonify({'error': 'Card not found'}), 404
+    """Delete a main card"""
+    try:
+        cards_data = load_cards()
+        cards = cards_data.get('cards', [])
+        
+        original_length = len(cards)
+        cards_data['cards'] = [c for c in cards if c['id'] != card_id]
+        
+        if len(cards_data['cards']) < original_length:
+            save_cards(cards_data)
+            return jsonify({'message': 'Card deleted successfully'}), 200
+        
+        return jsonify({'error': 'Card not found'}), 404
+    except Exception as e:
+        logger.error(f"Error deleting card {card_id}: {e}")
+        return jsonify({'error': 'Failed to delete card'}), 500
 
 @app.route('/api/dare-cards/<int:card_id>', methods=['DELETE'])
 def delete_dare_card(card_id):
     """Delete a dare card"""
-    dare_cards_data = load_dare_cards()
-    dare_cards = dare_cards_data.get('cards', [])
-    
-    original_length = len(dare_cards)
-    dare_cards_data['cards'] = [c for c in dare_cards if c['id'] != card_id]
-    
-    if len(dare_cards_data['cards']) < original_length:
-        save_dare_cards(dare_cards_data)
-        return jsonify({'message': 'Dare card deleted successfully'}), 200
-    
-    return jsonify({'error': 'Dare card not found'}), 404
-
-@app.route('/api/game/level-info', methods=['GET'])
-def get_level_info():
-    """Get level information and requirements"""
-    level_info = {
-        1: {
-            'name': 'Level 1 - Easy',
-            'target_score': 15,
-            'description': 'First to 15 points wins the round'
-        },
-        2: {
-            'name': 'Level 2 - Medium', 
-            'target_score': 24,
-            'description': 'First to 24 points wins the round'
-        },
-        3: {
-            'name': 'Level 3 - Hard',
-            'target_score': 24,
-            'description': 'First to 24 points wins the final round'
-        }
-    }
-    return jsonify(level_info)
-
-@app.route('/api/game/current-level', methods=['GET'])
-def get_current_level():
-    """Get the current game level"""
-    init_session_data()
-    return jsonify({'level': session.get('current_level', 1)})
-
-@app.route('/api/game/current-level', methods=['POST'])
-def set_current_level():
-    """Set the current game level"""
-    init_session_data()
-    data = request.json
-    session['current_level'] = data.get('level', 1)
-    session.modified = True
-    return jsonify({'status': 'success', 'level': session['current_level']})
-
-@app.route('/api/game/round-wins', methods=['GET'])
-def get_round_wins():
-    """Get round win counts for both players"""
-    init_session_data()
-    return jsonify(session.get('round_wins', {'player_1': 0, 'player_2': 0}))
-
-@app.route('/api/game/round-wins', methods=['POST'])
-def update_round_wins():
-    """Update round win counts"""
-    init_session_data()
-    data = request.json
-    if 'player_1' in data:
-        session['round_wins']['player_1'] = data['player_1']
-    if 'player_2' in data:
-        session['round_wins']['player_2'] = data['player_2']
-    session.modified = True
-    return jsonify({'status': 'success', 'round_wins': session['round_wins']})
-
-@app.route('/api/game/reset-round-wins', methods=['POST'])
-def reset_round_wins():
-    """Reset round win counts"""
-    init_session_data()
-    session['round_wins'] = {'player_1': 0, 'player_2': 0}
-    session.modified = True
-    return jsonify({'status': 'success', 'round_wins': session['round_wins']})
-
-# Card tracking endpoints  
-@app.route('/api/cards/used/<int:level>', methods=['GET'])
-def get_used_cards(level):
-    """Get list of used card IDs for a level"""
-    init_session_data()
-    level_key = f'level_{level}'
-    return jsonify({'used_cards': session.get('used_cards', {}).get(level_key, [])})
-
-@app.route('/api/cards/used/<int:level>', methods=['POST'])
-def update_used_cards(level):
-    """Update the list of used cards for a level"""
-    init_session_data()
-    data = request.json
-    level_key = f'level_{level}'
-    if 'used_cards' not in session:
-        session['used_cards'] = {}
-    session['used_cards'][level_key] = data.get('used_cards', [])
-    session.modified = True
-    return jsonify({'status': 'success'})
-
-@app.route('/api/cards/reset-used/<int:level>', methods=['POST'])
-def reset_used_cards(level):
-    """Reset used cards for a specific level"""
-    init_session_data()
-    level_key = f'level_{level}'
-    if 'used_cards' not in session:
-        session['used_cards'] = {}
-    session['used_cards'][level_key] = []
-    session.modified = True
-    return jsonify({'status': 'success'})
-
-@app.route('/api/cards/reset-all-used', methods=['POST'])
-def reset_all_used_cards():
-    """Reset all used cards across all levels"""
-    init_session_data()
-    session['used_cards'] = {
-        'level_1': [],
-        'level_2': [],
-        'level_3': []
-    }
-    session.modified = True
-    return jsonify({'status': 'success'})
+    try:
+        dare_cards_data = load_dare_cards()
+        dare_cards = dare_cards_data.get('cards', [])
+        
+        original_length = len(dare_cards)
+        dare_cards_data['cards'] = [c for c in dare_cards if c['id'] != card_id]
+        
+        if len(dare_cards_data['cards']) < original_length:
+            save_dare_cards(dare_cards_data)
+            return jsonify({'message': 'Dare card deleted successfully'}), 200
+        
+        return jsonify({'error': 'Dare card not found'}), 404
+    except Exception as e:
+        logger.error(f"Error deleting dare card {card_id}: {e}")
+        return jsonify({'error': 'Failed to delete dare card'}), 500
 
 @app.route('/api/session/progress', methods=['POST'])
 def save_progress():
     """Save current session progress"""
-    progress_data = request.json
-    session['progress'] = progress_data
-    session.modified = True
-    return jsonify({'status': 'saved'}), 200
+    try:
+        progress_data = request.json
+        session['progress'] = progress_data
+        return jsonify({'status': 'saved'}), 200
+    except Exception as e:
+        logger.error(f"Error saving progress: {e}")
+        return jsonify({'error': 'Failed to save progress'}), 500
 
 @app.route('/api/session/progress', methods=['GET'])
 def get_progress():
@@ -658,15 +354,47 @@ def get_progress():
 @app.route('/api/game/state', methods=['POST'])
 def save_game_state():
     """Save current game state"""
-    game_state = request.json
-    session['game_state'] = game_state
-    session.modified = True
-    return jsonify({'status': 'saved'}), 200
+    try:
+        game_state = request.json
+        session['game_state'] = game_state
+        return jsonify({'status': 'saved'}), 200
+    except Exception as e:
+        logger.error(f"Error saving game state: {e}")
+        return jsonify({'error': 'Failed to save game state'}), 500
 
 @app.route('/api/game/state', methods=['GET'])
 def get_game_state():
     """Get current game state"""
     return jsonify(session.get('game_state', {}))
+
+@app.route('/api/stats', methods=['GET'])
+def get_game_stats():
+    """Get game statistics"""
+    try:
+        cards_data = load_cards()
+        dare_cards_data = load_dare_cards()
+        
+        stats = {
+            'total_cards': len(cards_data.get('cards', [])),
+            'total_dare_cards': len(dare_cards_data.get('cards', [])),
+            'card_types': {},
+            'dare_difficulties': {}
+        }
+        
+        # Count card types
+        for card in cards_data.get('cards', []):
+            card_type = card.get('type', 'unknown')
+            stats['card_types'][card_type] = stats['card_types'].get(card_type, 0) + 1
+        
+        # Count dare difficulties
+        for card in dare_cards_data.get('cards', []):
+            difficulty = card.get('difficulty', 'unknown')
+            stats['dare_difficulties'][difficulty] = stats['dare_difficulties'].get(difficulty, 0) + 1
+        
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        return jsonify({'error': 'Failed to get stats'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
