@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Digital Card Deck - Two Player Game</title>
+    <title>Devils Advocate - Couples Game</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -155,10 +155,10 @@
                     <!-- Wildcard Action Buttons -->
                     <div id="wildcard-action-buttons" class="action-buttons wildcard-actions hidden">
                         <button id="use-wildcard-btn" class="btn btn-use-wildcard" aria-label="Use wildcard on opponent">
-                            <span class="btn-icon">🎯</span> Use on Opponent
+                            <span class="btn-icon">🎯</span> Use
                         </button>
                         <button id="save-wildcard-btn" class="btn btn-save-wildcard" aria-label="Save wildcard for later">
-                            <span class="btn-icon">💾</span> Save for Later
+                            <span class="btn-icon">💾</span> Save
                         </button>
                     </div>
                 </div>
@@ -186,7 +186,7 @@
         </main>
 
         <!-- Wildcard Collection Modal -->
-        <div id="wildcard-collection-modal" class="modal hidden">
+        <div id="wildcard-collection-modal" class="modal">
             <div class="modal-content">
                 <button class="modal-close" aria-label="Close modal">&times;</button>
                 <h2>Your Wild Cards</h2>
@@ -198,7 +198,7 @@
         </div>
 
         <!-- Add/Edit Card Modal -->
-        <div id="card-modal" class="modal hidden">
+        <div id="card-modal" class="modal">
             <div class="modal-content">
                 <button class="modal-close" aria-label="Close modal">&times;</button>
                 <h2 id="modal-title">Add New Card</h2>
@@ -253,7 +253,7 @@
         </div>
 
         <!-- Add/Edit Dare Card Modal -->
-        <div id="dare-card-modal" class="modal hidden">
+        <div id="dare-card-modal" class="modal">
             <div class="modal-content">
                 <button class="modal-close" aria-label="Close modal">&times;</button>
                 <h2 id="dare-modal-title">Add New Dare Card</h2>
@@ -298,7 +298,7 @@
         </div>
 
         <!-- Card Management Modal -->
-        <div id="manage-modal" class="modal hidden">
+        <div id="manage-modal" class="modal">
             <div class="modal-content modal-wide">
                 <button class="modal-close" aria-label="Close modal">&times;</button>
                 <h2>Manage Cards</h2>
@@ -318,7 +318,7 @@
         </div>
 
         <!-- Dare Card Management Modal -->
-        <div id="manage-dare-modal" class="modal hidden">
+        <div id="manage-dare-modal" class="modal">
             <div class="modal-content modal-wide">
                 <button class="modal-close" aria-label="Close modal">&times;</button>
                 <h2>Manage Dare Cards</h2>
@@ -337,7 +337,7 @@
         </div>
 
         <!-- Winner Modal -->
-        <div id="winner-modal" class="modal hidden">
+        <div id="winner-modal" class="modal">
             <div class="modal-content winner-content">
                 <h2 class="winner-title">🏆 Game Over! 🏆</h2>
                 <div class="winner-info">
