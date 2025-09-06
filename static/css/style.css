@@ -1465,3 +1465,231 @@ body {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* Level Indicator Bar */
+.level-indicator-bar {
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+    border-radius: var(--border-radius);
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.level-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.level-label {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.level-value {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: var(--text-primary);
+    padding: 5px 15px;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border-radius: 20px;
+}
+
+.level-progress-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin: 0 30px;
+}
+
+.level-progress-bar {
+    flex: 1;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.level-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3498db, #2ecc71);
+    border-radius: 10px;
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+.level-target {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+#target-score {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Player Rounds Display */
+.player-rounds-compact {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.rounds-label {
+    font-weight: 500;
+}
+
+.rounds-value {
+    font-weight: 700;
+    color: #f39c12;
+    font-size: 1.1em;
+}
+
+/* Deck Count */
+.deck-count {
+    margin-top: 10px;
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Level Complete Modal */
+.level-complete-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.level-complete-title {
+    font-size: 2.5em;
+    margin-bottom: 30px;
+    background: linear-gradient(135deg, #f39c12, #e74c3c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.level-complete-info {
+    margin-bottom: 30px;
+}
+
+.level-winner {
+    font-size: 1.4em;
+    margin-bottom: 15px;
+    color: var(--text-primary);
+}
+
+.next-level-info {
+    font-size: 1.2em;
+    color: var(--text-secondary);
+}
+
+.level-complete-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.btn-continue {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    font-size: 1.1em;
+    padding: 15px 40px;
+}
+
+.btn-continue:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(46, 204, 113, 0.4);
+}
+
+/* Toast Banner for Level Complete */
+.toast-banner {
+    position: fixed;
+    top: -100px;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    color: white;
+    padding: 20px;
+    text-align: center;
+    z-index: 3000;
+    transition: top 0.5s ease;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.toast-banner.show {
+    top: 0;
+}
+
+.toast-banner-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.toast-banner-message {
+    font-size: 1.3em;
+    font-weight: 600;
+}
+
+.toast-banner.level-complete {
+    background: linear-gradient(135deg, #f39c12, #e74c3c);
+}
+
+/* Updated game info compact styling */
+.game-round-compact {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.round-label {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Mobile Responsiveness Updates */
+@media (max-width: 768px) {
+    .level-indicator-bar {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .level-progress-container {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .player-rounds-compact {
+        font-size: 0.75em;
+    }
+    
+    .rounds-value {
+        font-size: 1em;
+    }
+}
+
+@media (max-width: 480px) {
+    .level-value {
+        font-size: 1.1em;
+        padding: 3px 10px;
+    }
+    
+    .level-complete-title {
+        font-size: 1.8em;
+    }
+    
+    .toast-banner-message {
+        font-size: 1em;
+    }
+}
