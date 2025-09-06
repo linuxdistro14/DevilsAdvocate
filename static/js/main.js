@@ -180,11 +180,18 @@ class CardDeck {
 
     async loadLevelCards() {
     try {
-        // Use the backward-compatible endpoint that includes level logic
+        // Use the standard shuffle endpoint which now includes level logic
         const response = await fetch('/api/cards/shuffle');
         const data = await response.json();
         
         this.cards = data.cards || [];
+        
+        // If no cards returned, something is wrong
+        if (this.cards.length === 0) {
+            console.error('No cards loaded from server');
+            this.showToast('No cards available. Please check card files.', 'error');
+            return;
+        }
         
         // Ensure all cards have proper score values
         this.cards = this.cards.map(card => ({
@@ -199,27 +206,15 @@ class CardDeck {
         // Update deck count display
         this.updateDeckCount();
         
-        console.log('Loaded cards for level', this.currentLevel, ':', this.cards.length, 'cards');
+        console.log(`Loaded ${this.cards.length} cards for level ${this.currentLevel}`);
+        
     } catch (error) {
-        console.error('Error loading level cards:', error);
-        // Try fallback approach
-        try {
-            const fallbackResponse = await fetch(`/api/cards/level/${this.currentLevel}/shuffle`);
-            const fallbackData = await fallbackResponse.json();
-            
-            this.cards = fallbackData.cards || [];
-            this.cards = this.cards.map(card => ({
-                ...card,
-                scoreValue: card.type === 'wild_card' ? 0 : (card.scoreValue || this.levelScoreValues[this.currentLevel] || 1)
-            }));
-            
-            this.currentDeck = [...this.cards];
-            this.completedCards = [];
-            this.updateDeckCount();
-        } catch (fallbackError) {
-            console.error('Fallback also failed:', fallbackError);
-            this.showToast('Failed to load cards', 'error');
-        }
+        console.error('Error loading cards:', error);
+        this.showToast('Failed to load cards. Please refresh the page.', 'error');
+        
+        // Try to load some default cards as fallback
+        this.cards = [];
+        this.currentDeck = [];
     }
 }
     async loadDareCards() {
@@ -386,22 +381,51 @@ class CardDeck {
     }
 
     flipCard() {
-        if (this.isAnimating) return;
-        
-        if (this.currentDeck.length === 0) {
-            this.showToast('No more cards in the deck! Deck will be reshuffled.', 'info');
-            this.reshuffleDeck();
-            return;
-        }
+    if (this.isAnimating) {
+        console.log('Animation in progress, skipping flip');
+        return;
+    }
+    
+    console.log('Current deck length:', this.currentDeck.length);
+    console.log('Current card:', this.currentCard);
+    
+    if (this.currentDeck.length === 0) {
+        this.showToast('No more cards in the deck! Deck will be reshuffled.', 'info');
+        this.reshuffleDeck();
+        return;
+    }
 
-        if (this.currentCard) {
-            this.showToast('Please complete or skip the current card first', 'info');
-            return;
-        }
+    if (this.currentCard) {
+        this.showToast('Please complete or skip the current card first', 'info');
+        return;
+    }
 
-        this.isAnimating = true;
-        this.currentCard = this.currentDeck.shift();
-        this.isDareCard = false;
+    this.isAnimating = true;
+    this.currentCard = this.currentDeck.shift();
+    this.isDareCard = false;
+    
+    console.log('Drew card:', this.currentCard);
+    
+    // Track used card
+    if (this.currentCard && this.currentCard.id && !this.usedCardsByLevel[this.currentLevel].includes(this.currentCard.id)) {
+        this.usedCardsByLevel[this.currentLevel].push(this.currentCard.id);
+        this.saveUsedCards(this.currentLevel);
+    }
+    
+    // Add haptic feedback for mobile
+    if ('vibrate' in navigator) {
+        navigator.vibrate(50);
+    }
+    
+    this.displayCurrentCard();
+    this.updateUI();
+    this.updateDeckCount();
+    this.setRandomCardBackImage();
+    
+    setTimeout(() => {
+        this.isAnimating = false;
+    }, 600);
+}
         
         // Track used card
         if (this.currentCard && !this.usedCardsByLevel[this.currentLevel].includes(this.currentCard.id)) {
