@@ -2420,25 +2420,133 @@ body {
     box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
 }
 
-/* Enhanced Responsive Design */
-@media (max-width: 1200px) {
+/* Enhanced Responsive Design - Based on viewport_sizes.json data */
+
+/* Large Desktop Screens (>1366px) - Optimized for high-res displays */
+@media (min-width: 1367px) {
+    .container {
+        max-width: 1600px;
+        padding: 25px;
+    }
+
+    .main-title {
+        font-size: 2.8em;
+    }
+
+    .game-area {
+        gap: 60px;
+        min-height: 680px;
+    }
+
+    .card-deck-large,
+    .completed-stack-large {
+        width: 280px;
+        height: 380px;
+    }
+
+    .current-card-large {
+        width: 380px;
+        height: 520px;
+    }
+
+    .card-back-image {
+        max-width: 240px;
+        max-height: 320px;
+    }
+}
+
+/* Desktop/Laptop Screens (1024px - 1366px) - Standard desktop experience */
+@media (min-width: 1024px) and (max-width: 1366px) {
+    .container {
+        max-width: 1400px;
+        padding: 22px;
+    }
+
+    .game-area {
+        grid-template-columns: 1fr 1.8fr 1fr;
+        gap: 50px;
+        min-height: 620px;
+    }
+
+    .current-card-large {
+        width: 350px;
+        height: 480px;
+    }
+}
+
+/* Tablet Landscape (768px - 1023px) - iPad Pro/Air landscape */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .game-area {
+        grid-template-columns: 1fr 2fr 1fr;
+        gap: 30px;
+        min-height: 500px;
+    }
+
+    .players-section-compact {
+        grid-template-columns: 1fr auto 1fr;
+        gap: 15px;
+    }
+
+    .main-title {
+        font-size: 2.2em;
+    }
+
+    .card-deck-large,
+    .completed-stack-large {
+        width: 200px;
+        height: 280px;
+    }
+
+    .current-card-large {
+        width: 300px;
+        height: 420px;
+    }
+
+    .card-back-image {
+        width: calc(100% - 15px);
+        height: calc(100% - 15px);
+        max-width: 180px;
+        max-height: 240px;
+    }
+
+    .btn {
+        padding: 14px 28px;
+        font-size: 1.05em;
+        min-width: 130px;
+    }
+
+    .level-info {
+        flex-direction: row;
+        gap: 25px;
+    }
+
+    .level-progress-bar {
+        max-width: 300px;
+    }
+}
+
+/* Large Mobile/Small Tablet (481px - 767px) - iPhone Plus, Galaxy Note, iPad mini portrait */
+@media (min-width: 481px) and (max-width: 767px) {
     .game-area {
         grid-template-columns: 1fr;
-        gap: 35px;
+        gap: 25px;
+        min-height: 450px;
     }
 
     .players-section-compact {
         grid-template-columns: 1fr;
-        gap: 20px;
+        gap: 15px;
     }
 
     .main-title {
-        font-size: 2em;
+        font-size: 1.8em;
+        flex-direction: row;
+        gap: 10px;
     }
 
     .level-info {
         flex-direction: column;
-        gap: 20px;
+        gap: 15px;
         align-items: center;
     }
 
@@ -2446,138 +2554,45 @@ body {
         max-width: 100%;
         align-items: center;
     }
+
+    .card-deck-large,
+    .completed-stack-large {
+        width: 180px;
+        height: 250px;
+    }
+
+    .current-card-large {
+        width: 100%;
+        max-width: 280px;
+        height: 390px;
+    }
+
+    .card-back-image {
+        width: calc(100% - 12px);
+        height: calc(100% - 12px);
+        min-width: 120px;
+        min-height: 120px;
+        max-width: 160px;
+        max-height: 210px;
+    }
 }
 
-@media (max-width: 768px) {
+/* Standard Mobile Devices (320px - 480px) - iPhone 6/7/8, Galaxy S series */
+@media (max-width: 480px) {
     .container {
-        padding: 15px;
+        padding: 12px;
     }
 
     .navbar {
-        padding: 12px 18px;
-    }
-
-    .main-title {
-        font-size: 1.6em;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .level-progress-section {
         padding: 10px 15px;
         margin-bottom: 10px;
     }
 
-    .level-title {
-        font-size: 1.1em;
-    }
-
-    .level-subtitle {
-        font-size: 0.7em;
-    }
-
-    .level-progress-bar {
-        gap: 10px;
-    }
-
-    .progress-bar-container {
-        height: 16px;
-    }
-
-    .progress-text {
-        font-size: 0.7em;
-    }
-
-    .target-score {
-        font-size: 0.7em;
-    }
-
-    .player-stats-compact {
-        gap: 4px;
-    }
-
-    .round-wins-compact {
-        font-size: 0.75em;
-        padding: 2px 4px;
-    }
-    
-    .current-card-large {
-        width: 100%;
-        max-width: 320px;
-        height: 420px;
-    }
-    
-    .card-deck-large,
-    .completed-stack-large {
-        width: 200px;
-        height: 270px;
-    }
-    
-    .card-back-image {
-        width: 140px;
-        height: 140px;
-    }
-    
-    .action-buttons:not(.hidden),
-    #action-buttons:not(.hidden),
-    #dare-action-buttons:not(.hidden),
-    #wildcard-action-buttons:not(.hidden) {
-        gap: 20px;
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-    
-    .wildcard-actions {
-        gap: 20px !important;
-        flex-direction: row !important;
-    }
-    
-    .btn {
-        padding: 15px 25px;
-        font-size: 1em;
-        min-width: 120px;
-        flex: 0 1 auto;
-    }
-    
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-    
-    .manage-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .toast {
-        bottom: 25px;
-        right: 25px;
-        left: 25px;
-        max-width: none;
-    }
-    
-    .modal-content {
-        padding: 30px 25px;
-    }
-    
-    .winner-content {
-        padding: 40px 25px;
-    }
-    
-    .final-score-item {
-        font-size: 1.3em;
-    }
-    
-    /* FIXED: Nav dropdown positioning for mobile */
-    .nav-dropdown {
-        left: 15px;
-        top: 70px;
-        min-width: 200px;
-    }
-}
-
-@media (max-width: 480px) {
     .main-title {
         font-size: 1.4em;
+        flex-direction: column;
+        gap: 5px;
+        text-align: center;
     }
 
     .title-icon {
@@ -2590,13 +2605,15 @@ body {
     }
 
     .level-info {
-        gap: 15px;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
     }
 
     .current-level-display {
         flex-direction: column;
         gap: 2px;
-        align-items: flex-start;
+        align-items: center;
     }
 
     .level-title {
@@ -2609,128 +2626,518 @@ body {
 
     .level-progress-bar {
         gap: 8px;
-        max-width: 180px;
+        max-width: 200px;
+        flex-direction: column;
+        align-items: center;
     }
 
     .progress-bar-container {
-        height: 14px;
+        height: 12px;
+        width: 100%;
+        max-width: 200px;
     }
 
     .progress-text {
-        font-size: 0.65em;
+        font-size: 0.6em;
     }
 
     .target-score {
-        font-size: 0.65em;
+        font-size: 0.6em;
+        margin-top: 5px;
     }
 
-    .level-complete-content {
-        padding: 30px 20px;
+    .players-section-compact {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 15px;
     }
 
-    .level-complete-title {
-        font-size: 2em;
+    .player-card-compact {
+        padding: 12px;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
     }
 
-    .round-winner-name {
+    .player-info-compact {
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .player-name-input-compact {
+        width: 80px;
+        font-size: 0.9em;
+        text-align: center;
+    }
+
+    .player-stats-compact {
+        flex-direction: row;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .score-value-compact {
         font-size: 1.5em;
     }
 
-    .level-complete-details {
+    .round-wins-compact {
+        font-size: 0.7em;
+        padding: 2px 6px;
+    }
+
+    .player-wildcards-compact {
+        font-size: 0.8em;
+        padding: 3px 6px;
+    }
+
+    .game-info-compact {
+        padding: 12px;
+    }
+
+    .turn-player-compact {
+        font-size: 1em;
+    }
+
+    .round-number-compact {
+        font-size: 1.5em;
+    }
+
+    .game-area {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+        min-height: 400px;
+    }
+
+    .section-title {
+        font-size: 1.1em;
+        margin-bottom: 12px;
+    }
+
+    .card-deck-large,
+    .completed-stack-large {
+        width: 160px;
+        height: 220px;
+    }
+
+    .current-card-large {
+        width: 100%;
+        max-width: 280px;
+        height: 360px;
+    }
+
+    .card-front-large {
         padding: 20px;
     }
 
-    .completed-level-title {
-        font-size: 1.2em;
+    .card-title-large {
+        font-size: 1.3em;
+        margin-bottom: 15px;
     }
 
-    .next-level-title {
-        font-size: 1.1em;
+    .card-content-large {
+        font-size: 1em;
+        padding: 15px 0;
     }
-    
-    .card-deck-large,
-    .completed-stack-large {
-        width: 170px;
-        height: 230px;
-    }
-    
+
     .card-back-image {
-        width: 120px;
-        height: 120px;
-    }
-    
-    .current-card-large {
-        height: 380px;
-    }
-    
-    .score-value-compact {
-        font-size: 1.6em;
-    }
-    
-    .player-name-input-compact {
-        width: 70px;
-        font-size: 0.9em;
-    }
-    
-    .btn {
-        padding: 12px 20px;
-        font-size: 0.9em;
+        width: calc(100% - 10px);
+        height: calc(100% - 10px);
         min-width: 100px;
-        flex: 0 1 auto;
+        min-height: 100px;
+        max-width: 140px;
+        max-height: 180px;
     }
-    
+
     .action-buttons:not(.hidden),
     #action-buttons:not(.hidden),
     #dare-action-buttons:not(.hidden),
     #wildcard-action-buttons:not(.hidden) {
-        gap: 15px;
-        flex-direction: row;
-        flex-wrap: wrap;
+        gap: 12px;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
     }
-    
+
     .wildcard-actions {
-        gap: 15px !important;
-        flex-direction: row !important;
-        flex-wrap: wrap;
+        gap: 12px !important;
+        flex-direction: column !important;
+        align-items: center;
+        width: 100%;
     }
-    
+
+    .btn {
+        padding: 12px 20px;
+        font-size: 0.9em;
+        min-width: 140px;
+        width: 100%;
+        max-width: 200px;
+        text-align: center;
+    }
+
+    .btn-icon {
+        font-size: 1.2em;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .manage-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .search-input,
+    .filter-select {
+        min-width: unset;
+        width: 100%;
+    }
+
+    .toast {
+        bottom: 15px;
+        right: 15px;
+        left: 15px;
+        max-width: none;
+        padding: 15px 20px;
+        font-size: 0.9em;
+    }
+
     .modal-content {
-        padding: 25px 20px;
+        padding: 20px 15px;
+        width: 95%;
     }
-    
-    .winner-title {
-        font-size: 2.2em;
+
+    .winner-content,
+    .level-complete-content {
+        padding: 30px 20px;
     }
-    
-    .winner-name {
+
+    .winner-title,
+    .level-complete-title {
         font-size: 2em;
     }
-    
-    /* FIXED: Nav dropdown positioning for very small screens */
+
+    .winner-name,
+    .round-winner-name {
+        font-size: 1.6em;
+    }
+
+    .final-score-item,
+    .round-win-item {
+        font-size: 1.1em;
+        flex-direction: column;
+        text-align: center;
+        gap: 5px;
+    }
+
     .nav-dropdown {
         left: 10px;
-        top: 65px;
-        min-width: 180px;
+        top: 60px;
+        min-width: calc(100vw - 20px);
+        max-width: 280px;
+    }
+
+    .nav-item {
+        padding: 12px 18px;
+        font-size: 0.9em;
+    }
+
+    .instruction-text {
+        font-size: 0.9em;
+        text-align: center;
+    }
+
+    .completed-info-large {
+        margin-top: 10px;
+    }
+
+    .completed-count-large {
+        font-size: 2em;
+    }
+
+    .completed-label-large {
+        font-size: 0.8em;
     }
 }
 
-/* Touch Device Optimizations */
+/* Extra Small Devices (max-width: 320px) - iPhone SE, older devices */
+@media (max-width: 320px) {
+    .container {
+        padding: 8px;
+    }
+
+    .navbar {
+        padding: 8px 12px;
+    }
+
+    .main-title {
+        font-size: 1.2em;
+        line-height: 1.2;
+    }
+
+    .title-icon {
+        font-size: 0.8em;
+    }
+
+    .level-progress-section {
+        padding: 6px 10px;
+        margin-bottom: 6px;
+    }
+
+    .level-progress-bar {
+        max-width: 160px;
+    }
+
+    .progress-bar-container {
+        height: 10px;
+    }
+
+    .card-deck-large,
+    .completed-stack-large {
+        width: 140px;
+        height: 190px;
+    }
+
+    .current-card-large {
+        max-width: 260px;
+        height: 320px;
+    }
+
+    .card-front-large {
+        padding: 15px;
+    }
+
+    .card-title-large {
+        font-size: 1.1em;
+    }
+
+    .card-content-large {
+        font-size: 0.9em;
+    }
+
+    .btn {
+        padding: 10px 16px;
+        font-size: 0.85em;
+        min-width: 120px;
+    }
+
+    .nav-dropdown {
+        min-width: calc(100vw - 16px);
+        max-width: 260px;
+    }
+}
+
+/* Orientation-Specific Styles */
+
+/* Landscape Orientation for Mobile Devices */
+@media (max-width: 767px) and (orientation: landscape) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 10px;
+    }
+
+    .navbar {
+        padding: 8px 15px;
+        margin-bottom: 8px;
+    }
+
+    .main-title {
+        font-size: 1.3em;
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .level-progress-section {
+        padding: 6px 15px;
+        margin-bottom: 6px;
+    }
+
+    .level-info {
+        flex-direction: row;
+        gap: 20px;
+    }
+
+    .level-progress-bar {
+        max-width: 250px;
+    }
+
+    .players-section-compact {
+        grid-template-columns: 1fr auto 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .player-card-compact {
+        padding: 8px;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .player-stats-compact {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .game-area {
+        grid-template-columns: 1fr 1.5fr 1fr;
+        gap: 15px;
+        margin-bottom: 15px;
+        min-height: 300px;
+    }
+
+    .card-deck-large,
+    .completed-stack-large {
+        width: 140px;
+        height: 200px;
+    }
+
+    .current-card-large {
+        width: 100%;
+        max-width: 260px;
+        height: 280px;
+    }
+
+    .card-front-large {
+        padding: 15px;
+    }
+
+    .card-title-large {
+        font-size: 1.1em;
+        margin-bottom: 12px;
+    }
+
+    .card-content-large {
+        font-size: 0.9em;
+        padding: 10px 0;
+    }
+
+    .action-buttons:not(.hidden),
+    #action-buttons:not(.hidden),
+    #dare-action-buttons:not(.hidden),
+    #wildcard-action-buttons:not(.hidden) {
+        gap: 10px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 8px 16px;
+        font-size: 0.85em;
+        min-width: 100px;
+    }
+
+    .modal-content {
+        width: 90%;
+        max-width: 500px;
+        padding: 15px;
+    }
+
+    .toast {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        padding: 10px 15px;
+        font-size: 0.85em;
+    }
+}
+
+/* Portrait Orientation for Tablet Devices */
+@media (min-width: 768px) and (max-width: 1023px) and (orientation: portrait) {
+    .game-area {
+        grid-template-columns: 1fr;
+        gap: 25px;
+    }
+
+    .players-section-compact {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .level-info {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .level-progress-bar {
+        max-width: 100%;
+    }
+}
+
+/* Enhanced Touch Device Optimizations */
 @media (hover: none) and (pointer: coarse) {
-    .card-deck-large:active {
+    /* Touch feedback for interactive elements */
+    .card-deck-large:active,
+    .touch-active.card-deck-large {
         transform: scale(0.95);
+        transition: transform 0.1s ease;
     }
-    
-    .btn:active {
+
+    .btn:active,
+    .touch-active.btn {
         transform: scale(0.95);
+        transition: transform 0.1s ease;
     }
-    
-    .nav-item:active {
+
+    .nav-item:active,
+    .touch-active.nav-item {
         background: rgba(52, 152, 219, 0.2);
+        transform: translateX(2px);
     }
-    
-    .player-wildcards-compact:active {
+
+    .player-wildcards-compact:active,
+    .touch-active.player-wildcards-compact {
         transform: scale(0.95);
     }
+
+    /* Increase touch targets for better accessibility */
+    .btn {
+        min-height: 44px; /* iOS recommendation for touch targets */
+        min-width: 44px;
+        padding: 12px 20px;
+    }
+
+    .nav-item {
+        min-height: 44px;
+        padding: 12px 20px;
+    }
+
+    .player-wildcards-compact,
+    .round-wins-compact {
+        min-height: 36px;
+        padding: 8px 12px;
+    }
+
+    /* Remove hover states on touch devices */
+    .card-deck-large:hover,
+    .btn:hover,
+    .nav-item:hover {
+        transform: none;
+        background: inherit;
+    }
+}
+
+/* Device-specific body classes for JavaScript targeting */
+body.device-extra_small_mobile .main-title {
+    font-size: 1.1em;
+}
+
+body.device-mobile .game-area {
+    margin-bottom: 15px;
+}
+
+body.device-tablet.orientation-landscape .players-section-compact {
+    grid-template-columns: 1fr auto 1fr;
+}
+
+body.device-desktop .container {
+    max-width: 1400px;
 }
 
 /* Print Styles */
