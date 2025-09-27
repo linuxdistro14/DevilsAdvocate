@@ -122,7 +122,7 @@ class CardDeck {
         this.setRandomCardBackImage();
         this.initAudioFeedback();
         this.initTooltips();
-        this.checkMobile();
+        this.initResponsiveBehavior();
         this.preloadImages();
     }
 
@@ -141,6 +141,277 @@ class CardDeck {
             const img = new Image();
             img.src = `/static/images/${image}`;
         });
+    }
+
+    initResponsiveBehavior() {
+        // Enhanced responsive behavior for dynamic viewport handling
+        this.deviceType = this.detectDeviceType();
+        this.orientation = this.getOrientation();
+
+        // Set up responsive event listeners
+        window.addEventListener('resize', this.handleResize.bind(this));
+        window.addEventListener('orientationchange', this.handleOrientationChange.bind(this));
+
+        // Apply initial responsive adjustments
+        this.applyResponsiveAdjustments();
+
+        // Touch-specific enhancements
+        if (this.isTouchDevice()) {
+            this.initTouchEnhancements();
+        }
+
+        console.log(`Device detected: ${this.deviceType}, Orientation: ${this.orientation}`);
+    }
+
+    detectDeviceType() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const userAgent = navigator.userAgent.toLowerCase();
+
+        // Use viewport_sizes.json data for accurate detection
+        if (width <= 320) {
+            return 'extra-small-mobile'; // iPhone SE, older devices
+        } else if (width <= 480) {
+            return 'mobile'; // Standard mobile phones
+        } else if (width <= 767) {
+            return 'large-mobile'; // iPhone Plus, Galaxy Note
+        } else if (width <= 1023) {
+            if (userAgent.includes('ipad') ||
+                (width >= 768 && height >= 600 && this.isTouchDevice())) {
+                return 'tablet';
+            }
+            return 'small-desktop';
+        } else if (width <= 1366) {
+            return 'desktop';
+        } else {
+            return 'large-desktop';
+        }
+    }
+
+    getOrientation() {
+        return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    }
+
+    isTouchDevice() {
+        return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    }
+
+    handleResize() {
+        // Debounce resize events for better performance
+        clearTimeout(this.resizeTimeout);
+        this.resizeTimeout = setTimeout(() => {
+            const newDeviceType = this.detectDeviceType();
+            const newOrientation = this.getOrientation();
+
+            if (newDeviceType !== this.deviceType || newOrientation !== this.orientation) {
+                this.deviceType = newDeviceType;
+                this.orientation = newOrientation;
+                this.applyResponsiveAdjustments();
+            }
+        }, 150);
+    }
+
+    handleOrientationChange() {
+        // Handle orientation change with a slight delay to ensure viewport updates
+        setTimeout(() => {
+            this.orientation = this.getOrientation();
+            this.applyResponsiveAdjustments();
+
+            // Refresh card back image sizing
+            this.updateCardBackImageSize();
+
+            // Ensure modals are properly positioned
+            this.repositionModals();
+        }, 300);
+    }
+
+    applyResponsiveAdjustments() {
+        const body = document.body;
+
+        // Remove existing device classes
+        body.classList.remove('device-mobile', 'device-tablet', 'device-desktop',
+                            'orientation-portrait', 'orientation-landscape');
+
+        // Add current device and orientation classes
+        body.classList.add(`device-${this.deviceType.replace('-', '_')}`);
+        body.classList.add(`orientation-${this.orientation}`);
+
+        // Apply device-specific adjustments
+        this.adjustForDeviceType();
+
+        // Update UI elements that need dynamic sizing
+        this.updateDynamicSizing();
+    }
+
+    adjustForDeviceType() {
+        const container = document.querySelector('.container');
+        const gameArea = document.querySelector('.game-area');
+
+        switch (this.deviceType) {
+            case 'extra-small-mobile':
+                this.applyExtraSmallMobileAdjustments();
+                break;
+            case 'mobile':
+                this.applyMobileAdjustments();
+                break;
+            case 'large-mobile':
+                this.applyLargeMobileAdjustments();
+                break;
+            case 'tablet':
+                this.applyTabletAdjustments();
+                break;
+            case 'desktop':
+            case 'large-desktop':
+                this.applyDesktopAdjustments();
+                break;
+        }
+    }
+
+    applyExtraSmallMobileAdjustments() {
+        // Specific adjustments for very small screens (iPhone SE, etc.)
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(btn => {
+            btn.style.fontSize = '0.8em';
+            btn.style.padding = '8px 12px';
+        });
+    }
+
+    applyMobileAdjustments() {
+        // Standard mobile phone adjustments
+        const navDropdown = document.getElementById('nav-dropdown');
+        if (navDropdown) {
+            navDropdown.style.width = 'calc(100vw - 20px)';
+            navDropdown.style.maxWidth = '280px';
+        }
+    }
+
+    applyLargeMobileAdjustments() {
+        // Large mobile device adjustments (iPhone Plus, Galaxy Note)
+        if (this.orientation === 'landscape') {
+            this.enableLandscapeOptimizations();
+        }
+    }
+
+    applyTabletAdjustments() {
+        // Tablet-specific adjustments
+        const gameArea = document.querySelector('.game-area');
+        if (this.orientation === 'portrait') {
+            gameArea.style.gridTemplateColumns = '1fr';
+        } else {
+            gameArea.style.gridTemplateColumns = '1fr 2fr 1fr';
+        }
+    }
+
+    applyDesktopAdjustments() {
+        // Desktop-specific adjustments
+        const gameArea = document.querySelector('.game-area');
+        gameArea.style.gridTemplateColumns = '1fr 1.5fr 1fr';
+    }
+
+    enableLandscapeOptimizations() {
+        // Optimize layout for landscape mobile viewing
+        const playersSection = document.querySelector('.players-section-compact');
+        if (playersSection) {
+            playersSection.style.gridTemplateColumns = '1fr auto 1fr';
+            playersSection.style.gap = '10px';
+        }
+    }
+
+    updateDynamicSizing() {
+        // Update elements that need dynamic sizing based on viewport
+        this.updateCardBackImageSize();
+        this.updateModalSizing();
+        this.updateToastPositioning();
+    }
+
+    updateCardBackImageSize() {
+        const cardBackImage = document.getElementById('card-back-image');
+        if (cardBackImage && cardBackImage.parentElement) {
+            const parent = cardBackImage.parentElement;
+            const parentWidth = parent.offsetWidth;
+            const parentHeight = parent.offsetHeight;
+
+            // Calculate optimal size while maintaining aspect ratio
+            const maxSize = Math.min(parentWidth - 20, parentHeight - 20);
+            const minSize = Math.max(100, maxSize * 0.6);
+
+            cardBackImage.style.width = `${Math.max(minSize, maxSize)}px`;
+            cardBackImage.style.height = `${Math.max(minSize, maxSize)}px`;
+        }
+    }
+
+    updateModalSizing() {
+        const modals = document.querySelectorAll('.modal-content');
+        modals.forEach(modal => {
+            if (this.deviceType.includes('mobile')) {
+                modal.style.width = '95%';
+                modal.style.maxWidth = '400px';
+                modal.style.margin = '20px auto';
+            } else if (this.deviceType === 'tablet') {
+                modal.style.width = '85%';
+                modal.style.maxWidth = '600px';
+            } else {
+                modal.style.width = '90%';
+                modal.style.maxWidth = '650px';
+            }
+        });
+    }
+
+    updateToastPositioning() {
+        const toast = document.getElementById('toast');
+        if (toast) {
+            if (this.deviceType.includes('mobile')) {
+                toast.style.left = '15px';
+                toast.style.right = '15px';
+                toast.style.bottom = '15px';
+            } else {
+                toast.style.left = 'auto';
+                toast.style.right = '35px';
+                toast.style.bottom = '35px';
+            }
+        }
+    }
+
+    repositionModals() {
+        // Ensure modals are properly centered after orientation change
+        const activeModals = document.querySelectorAll('.modal.active');
+        activeModals.forEach(modal => {
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+        });
+    }
+
+    initTouchEnhancements() {
+        // Enhanced touch interactions for touch devices
+        document.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+        document.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+
+        // Prevent scrolling on game area for better touch experience
+        const gameArea = document.querySelector('.game-area');
+        if (gameArea) {
+            gameArea.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+        }
+    }
+
+    handleTouchStart(event) {
+        // Add touch feedback
+        const target = event.target.closest('.btn, .card-deck-large, .nav-item');
+        if (target) {
+            target.classList.add('touch-active');
+        }
+    }
+
+    handleTouchEnd(event) {
+        // Remove touch feedback
+        setTimeout(() => {
+            const touchActive = document.querySelectorAll('.touch-active');
+            touchActive.forEach(element => {
+                element.classList.remove('touch-active');
+            });
+        }, 150);
     }
 
     setRandomCardBackImage() {
