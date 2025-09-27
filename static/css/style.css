@@ -747,11 +747,12 @@ body {
 /* Game Area Layout - Enhanced */
 .game-area {
     display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr;
-    gap: 45px;
+    grid-template-columns: 1fr 1.3fr 1fr;
+    gap: 35px;
     margin-bottom: 45px;
     min-height: 580px;
     align-items: start;
+    justify-items: center;
 }
 
 .section-title {
@@ -782,6 +783,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 280px;
 }
 
 .deck-container {
@@ -1262,6 +1266,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 280px;
 }
 
 .completed-container {
@@ -2463,9 +2470,10 @@ body {
     }
 
     .game-area {
-        grid-template-columns: 1fr 1.8fr 1fr;
-        gap: 50px;
+        grid-template-columns: 1fr 1.4fr 1fr;
+        gap: 40px;
         min-height: 620px;
+        justify-items: center;
     }
 
     .current-card-large {
@@ -2477,9 +2485,10 @@ body {
 /* Tablet Landscape (768px - 1023px) - iPad Pro/Air landscape */
 @media (min-width: 768px) and (max-width: 1023px) {
     .game-area {
-        grid-template-columns: 1fr 2fr 1fr;
-        gap: 30px;
+        grid-template-columns: 1fr 1.5fr 1fr;
+        gap: 25px;
         min-height: 500px;
+        justify-items: center;
     }
 
     .players-section-compact {
@@ -2985,10 +2994,11 @@ body {
     }
 
     .game-area {
-        grid-template-columns: 1fr 1.5fr 1fr;
+        grid-template-columns: 1fr 1.3fr 1fr;
         gap: 15px;
         margin-bottom: 15px;
         min-height: 300px;
+        justify-items: center;
     }
 
     .card-deck-large,
