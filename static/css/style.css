@@ -392,6 +392,8 @@ body {
     font-size: 1.1em;
     animation: bounce 2s ease-in-out infinite;
     filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.1));
+    position: relative;
+    z-index: 2600; /* Above nav-menu-container */
 }
 
 @keyframes bounce {
@@ -401,6 +403,104 @@ body {
 
 .nav-spacer {
     width: 50px;
+}
+
+/* Compact Level Progress Section */
+.level-progress-section {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 12px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.level-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.current-level-display {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.level-title {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+.level-subtitle {
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+}
+
+.level-progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+    max-width: 250px;
+}
+
+.progress-bar-container {
+    position: relative;
+    width: 100%;
+    height: 18px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3498db, #2ecc71);
+    border-radius: 10px;
+    width: 0%;
+    transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+}
+
+.progress-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: progressShine 2s ease-in-out infinite;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 0.75em;
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+    z-index: 2;
+}
+
+.target-score {
+    color: var(--text-secondary);
+    font-size: 0.75em;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 /* Compact Players Section - Enhanced */
@@ -513,7 +613,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 8px;
+    gap: 6px;
 }
 
 .score-value-compact {
@@ -548,6 +648,30 @@ body {
 
 .player-wildcards-compact:active {
     transform: scale(0.95);
+}
+
+.round-wins-compact {
+    font-size: 0.85em;
+    color: #f39c12;
+    font-weight: 600;
+    opacity: 0.9;
+    cursor: pointer;
+    transition: all var(--transition-speed) ease;
+    padding: 3px 6px;
+    border-radius: 12px;
+    background: rgba(243, 156, 18, 0.1);
+}
+
+.round-wins-compact:hover {
+    opacity: 1;
+    transform: scale(1.05);
+    background: rgba(243, 156, 18, 0.15);
+}
+
+.round-wins-count {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .wildcard-count {
@@ -1324,15 +1448,32 @@ body {
 /* Enhanced Action Buttons */
 .action-buttons {
     display: flex;
-    flex-direction: row !important;
+    flex-direction: row;
     gap: 30px;
     animation: slideUpEnhanced 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
+    align-items: center;
+    width: 100%;
 }
 
-.action-buttons.hidden {
-    display: none;
+/* Ensure specific action button groups maintain row layout when visible */
+#action-buttons:not(.hidden),
+#dare-action-buttons:not(.hidden),
+#wildcard-action-buttons:not(.hidden) {
+    display: flex;
+    flex-direction: row;
+    gap: 30px;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.action-buttons.hidden,
+#action-buttons.hidden,
+#dare-action-buttons.hidden,
+#wildcard-action-buttons.hidden {
+    display: none !important;
 }
 
 .dare-actions {
@@ -1347,6 +1488,17 @@ body {
     gap: 30px;
     justify-content: center;
     flex-wrap: wrap;
+}
+
+#wildcard-action-buttons {
+    position: relative;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 15px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes slideUpEnhanced {
@@ -1654,6 +1806,183 @@ body {
 
 .btn-close-modal:hover {
     background: linear-gradient(135deg, #bdc3c7, #95a5a6);
+}
+
+/* Level Complete Modal Styles */
+.level-complete-content {
+    padding: 50px 40px;
+    text-align: center;
+    max-width: 600px;
+}
+
+.level-complete-title {
+    font-size: 2.5em;
+    margin-bottom: 30px;
+    background: linear-gradient(135deg, #f39c12, #e67e22, #d35400);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    animation: levelCompletePulse 2s ease-in-out infinite;
+}
+
+@keyframes levelCompletePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+@keyframes progressShine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.round-winner-name {
+    font-size: 2em;
+    font-weight: 700;
+    margin-bottom: 25px;
+    color: var(--text-primary);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+.level-complete-details {
+    background: linear-gradient(135deg, #f8f9fa, #ecf0f1);
+    padding: 25px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.completed-level-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid rgba(0,0,0,0.1);
+}
+
+.completed-level-title {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #27ae60;
+    margin-bottom: 5px;
+}
+
+.completed-level-subtitle {
+    color: #27ae60;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9em;
+}
+
+.next-level-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.next-level-title {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+}
+
+.next-level-subtitle {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9em;
+}
+
+.current-round-wins {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
+
+.round-win-item {
+    font-size: 1.2em;
+    margin: 10px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    font-weight: 600;
+}
+
+.round-win-item:last-child {
+    border-bottom: none;
+}
+
+.level-complete-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-continue-next-level {
+    background: linear-gradient(135deg, #3498db, #2980b9, #21618c);
+    color: white;
+    font-size: 1.1em;
+    padding: 15px 30px;
+}
+
+.btn-continue-next-level:hover {
+    background: linear-gradient(135deg, #2980b9, #21618c, #1b4f72);
+    box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
+}
+
+/* Confirmation Modal Styles */
+.confirm-modal {
+    z-index: 3000;
+}
+
+.confirm-content {
+    text-align: center;
+    padding: 40px;
+    max-width: 500px;
+}
+
+.confirm-content h2 {
+    margin-bottom: 20px;
+    color: var(--text-primary);
+    font-size: 1.8em;
+}
+
+.confirm-content p {
+    margin-bottom: 30px;
+    color: var(--text-secondary);
+    font-size: 1.1em;
+    line-height: 1.5;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-cancel {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    color: white;
+}
+
+.btn-cancel:hover {
+    background: linear-gradient(135deg, #7f8c8d, #6c7b7d);
+}
+
+.btn-confirm {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+}
+
+.btn-confirm:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
 }
 
 /* Enhanced Wildcard Collection Modal */
@@ -2097,14 +2426,25 @@ body {
         grid-template-columns: 1fr;
         gap: 35px;
     }
-    
+
     .players-section-compact {
         grid-template-columns: 1fr;
         gap: 20px;
     }
-    
+
     .main-title {
         font-size: 2em;
+    }
+
+    .level-info {
+        flex-direction: column;
+        gap: 20px;
+        align-items: center;
+    }
+
+    .level-progress-bar {
+        max-width: 100%;
+        align-items: center;
     }
 }
 
@@ -2112,15 +2452,53 @@ body {
     .container {
         padding: 15px;
     }
-    
+
     .navbar {
         padding: 12px 18px;
     }
-    
+
     .main-title {
         font-size: 1.6em;
         flex-direction: column;
         gap: 8px;
+    }
+
+    .level-progress-section {
+        padding: 10px 15px;
+        margin-bottom: 10px;
+    }
+
+    .level-title {
+        font-size: 1.1em;
+    }
+
+    .level-subtitle {
+        font-size: 0.7em;
+    }
+
+    .level-progress-bar {
+        gap: 10px;
+    }
+
+    .progress-bar-container {
+        height: 16px;
+    }
+
+    .progress-text {
+        font-size: 0.7em;
+    }
+
+    .target-score {
+        font-size: 0.7em;
+    }
+
+    .player-stats-compact {
+        gap: 4px;
+    }
+
+    .round-wins-compact {
+        font-size: 0.75em;
+        padding: 2px 4px;
     }
     
     .current-card-large {
@@ -2140,9 +2518,13 @@ body {
         height: 140px;
     }
     
-    .action-buttons {
-        gap: 20px !important;
-        flex-direction: row !important;
+    .action-buttons:not(.hidden),
+    #action-buttons:not(.hidden),
+    #dare-action-buttons:not(.hidden),
+    #wildcard-action-buttons:not(.hidden) {
+        gap: 20px;
+        flex-direction: row;
+        flex-wrap: wrap;
     }
     
     .wildcard-actions {
@@ -2197,9 +2579,73 @@ body {
     .main-title {
         font-size: 1.4em;
     }
-    
+
     .title-icon {
         font-size: 0.9em;
+    }
+
+    .level-progress-section {
+        padding: 8px 12px;
+        margin-bottom: 8px;
+    }
+
+    .level-info {
+        gap: 15px;
+    }
+
+    .current-level-display {
+        flex-direction: column;
+        gap: 2px;
+        align-items: flex-start;
+    }
+
+    .level-title {
+        font-size: 1em;
+    }
+
+    .level-subtitle {
+        font-size: 0.6em;
+    }
+
+    .level-progress-bar {
+        gap: 8px;
+        max-width: 180px;
+    }
+
+    .progress-bar-container {
+        height: 14px;
+    }
+
+    .progress-text {
+        font-size: 0.65em;
+    }
+
+    .target-score {
+        font-size: 0.65em;
+    }
+
+    .level-complete-content {
+        padding: 30px 20px;
+    }
+
+    .level-complete-title {
+        font-size: 2em;
+    }
+
+    .round-winner-name {
+        font-size: 1.5em;
+    }
+
+    .level-complete-details {
+        padding: 20px;
+    }
+
+    .completed-level-title {
+        font-size: 1.2em;
+    }
+
+    .next-level-title {
+        font-size: 1.1em;
     }
     
     .card-deck-large,
@@ -2233,9 +2679,12 @@ body {
         flex: 0 1 auto;
     }
     
-    .action-buttons {
-        gap: 15px !important;
-        flex-direction: row !important;
+    .action-buttons:not(.hidden),
+    #action-buttons:not(.hidden),
+    #dare-action-buttons:not(.hidden),
+    #wildcard-action-buttons:not(.hidden) {
+        gap: 15px;
+        flex-direction: row;
         flex-wrap: wrap;
     }
     
