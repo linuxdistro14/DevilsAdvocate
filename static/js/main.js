@@ -17,15 +17,45 @@ class CardDeck {
         this.editingDareCardId = null;
         this.pendingDareForPlayer = null;
         
-        // Enhanced game state
+        // Enhanced game state with level progression
         this.gameNumber = 1;
         this.currentPlayer = 1;
         this.startingPlayer = 1;
+        this.currentLevel = 1;
         this.gameStats = {
             totalGamesPlayed: 0,
             player1Wins: 0,
             player2Wins: 0,
             ties: 0
+        };
+
+        // Level progression system
+        this.levelConfig = {
+            1: { name: 'Easy', target: 15, cardsFile: 'easy_cards.json' },
+            2: { name: 'Medium', target: 24, cardsFile: 'medium_cards.json' },
+            3: { name: 'Hard', target: 24, cardsFile: 'hard_cards.json' }
+        };
+
+        // Used cards tracking per level to prevent repeats
+        this.usedCards = {
+            1: [],
+            2: [],
+            3: []
+        };
+
+        // Wildcard distribution control system
+        this.wildcardControl = {
+            lastWildcardDrawnBy: null,
+            lastWildcardTurn: -1,
+            consecutiveWildcards: 0,
+            maxConsecutiveWildcards: 2,
+            wildcardCooldown: 3, // Minimum turns between wildcards
+            playerWildcardCount: {
+                1: { thisLevel: 0, maxPerLevel: 4 },
+                2: { thisLevel: 0, maxPerLevel: 4 }
+            },
+            wildcardFrequency: 0.15, // 15% chance instead of 60%
+            turnCounter: 0
         };
         
         this.players = {
@@ -36,7 +66,8 @@ class CardDeck {
                 cardsSkipped: 0,
                 daresCompleted: 0,
                 wildcards: [],
-                streak: 0
+                streak: 0,
+                roundWins: 0  // Persistent round wins counter
             },
             2: {
                 name: 'Player 2',
@@ -45,7 +76,8 @@ class CardDeck {
                 cardsSkipped: 0,
                 daresCompleted: 0,
                 wildcards: [],
-                streak: 0
+                streak: 0,
+                roundWins: 0  // Persistent round wins counter
             }
         };
         
@@ -55,7 +87,8 @@ class CardDeck {
             'dare': {'level 1': 1, 'level 2': 2, 'level 3': 4},
             'never_ever': {'level 1': 1, 'level 2': 2, 'level 3': 4},
             'kink': {'level 1': 2, 'level 2': 4, 'level 3': 6},
-            'wild_card': {'level 1': 0, 'level 2': 0, 'level 3': 0}
+            'wild_card': {'level 1': 0, 'level 2': 0, 'level 3': 0},
+            'get_to_know_me': {'level 1': 1, 'level 2': 2, 'level 3': 4}
         };
 
       // Card back images
@@ -84,6 +117,7 @@ class CardDeck {
         this.setupEventListeners();
         this.updateUI();
         this.loadGameState();
+        this.loadPersistentProgress();
         this.updatePlayerDisplay();
         this.setRandomCardBackImage();
         this.initAudioFeedback();
@@ -123,29 +157,67 @@ class CardDeck {
 
     async loadCards() {
         try {
-            const response = await fetch('/api/cards/shuffle');
+            console.log(`Loading cards for level ${this.currentLevel}...`);
+            const response = await fetch(`/api/cards/level/${this.currentLevel}/shuffle`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
-            this.cards = data.cards || [];
-            
+            const allCards = data.cards || [];
+            console.log(`Received ${allCards.length} cards for level ${this.currentLevel}`);
+
             // Ensure all cards have score values
-            this.cards = this.cards.map(card => ({
+            const processedCards = allCards.map(card => ({
                 ...card,
                 scoreValue: card.scoreValue || this.scoreValues[card.type]?.[card.level] || 1
             }));
-            
-            this.currentDeck = [...this.cards];
+
+            // Separate regular cards from wildcards for better distribution control
+            this.regularCards = processedCards.filter(card => card.type !== 'wild_card');
+            this.wildcardPool = processedCards.filter(card => card.type === 'wild_card');
+
+            // Filter out used cards to prevent repeats
+            const usedCardsForLevel = this.usedCards[this.currentLevel] || [];
+            console.log(`Used cards for level ${this.currentLevel}:`, usedCardsForLevel.length, 'cards');
+
+            this.regularCards = this.regularCards.filter(card => !usedCardsForLevel.includes(card.id));
+            this.wildcardPool = this.wildcardPool.filter(card => !usedCardsForLevel.includes(card.id));
+
+            console.log(`After filtering: ${this.regularCards.length} regular cards, ${this.wildcardPool.length} wildcards`);
+
+            // If all regular cards have been used, reset the used cards list for this level
+            if (this.regularCards.length === 0) {
+                this.usedCards[this.currentLevel] = [];
+                this.regularCards = processedCards.filter(card => card.type !== 'wild_card');
+                this.wildcardPool = processedCards.filter(card => card.type === 'wild_card');
+                this.showToast(`All Level ${this.currentLevel} cards have been seen! Deck refreshed.`, 'info');
+            }
+
+            // Initialize deck with regular cards only and properly shuffle
+            this.currentDeck = [...this.regularCards];
+            this.shuffleArray(this.currentDeck); // Shuffle the deck for true randomization
+            this.cards = [...this.regularCards]; // Keep compatibility
             this.completedCards = [];
-            
-            if (this.cards.length === 0) {
+
+            // Reset wildcard control for new level
+            this.resetWildcardControlForLevel();
+
+            if (this.currentDeck.length === 0) {
                 this.showToast('No cards found in deck!', 'warning');
             }
         } catch (error) {
             console.error('Error loading cards:', error);
             this.showToast('Failed to load cards. Please refresh the page.', 'error');
         }
+    }
+
+    resetWildcardControlForLevel() {
+        this.wildcardControl.consecutiveWildcards = 0;
+        this.wildcardControl.lastWildcardDrawnBy = null;
+        this.wildcardControl.lastWildcardTurn = -1;
+        this.wildcardControl.turnCounter = 0;
+        this.wildcardControl.playerWildcardCount[1].thisLevel = 0;
+        this.wildcardControl.playerWildcardCount[2].thisLevel = 0;
     }
 
     async loadDareCards() {
@@ -265,13 +337,15 @@ class CardDeck {
             this.players[1].name = name;
             this.updatePlayerDisplay();
             this.saveGameState();
+            this.savePersistentProgress();
         });
-        
+
         document.getElementById('player-2-name').addEventListener('change', (e) => {
             const name = e.target.value.trim() || 'Player 2';
             this.players[2].name = name;
             this.updatePlayerDisplay();
             this.saveGameState();
+            this.savePersistentProgress();
         });
 
         // FIXED: Enhanced wildcard collection interactions
@@ -322,9 +396,19 @@ class CardDeck {
             document.getElementById('winner-modal').classList.add('hidden');
             this.startNewGame();
         });
-        
+
         document.querySelector('.btn-close-modal').addEventListener('click', () => {
             document.getElementById('winner-modal').classList.add('hidden');
+        });
+
+        // Level complete modal buttons
+        document.getElementById('continue-next-level').addEventListener('click', () => {
+            this.proceedToNextLevel();
+        });
+
+        document.querySelector('#level-complete-modal .btn-close-modal').addEventListener('click', () => {
+            document.getElementById('level-complete-modal').classList.add('hidden');
+            document.getElementById('level-complete-modal').classList.remove('active');
         });
 
         // Modal controls
@@ -412,8 +496,8 @@ class CardDeck {
 
     flipCard() {
         if (this.isAnimating) return;
-        
-        if (this.currentDeck.length === 0) {
+
+        if (this.currentDeck.length === 0 && (!this.wildcardPool || this.wildcardPool.length === 0)) {
             this.showToast('No more cards in the deck!', 'info');
             this.shakeElement(document.getElementById('card-deck'));
             if (this.completedCards.length > 0) {
@@ -429,27 +513,123 @@ class CardDeck {
         }
 
         this.isAnimating = true;
-        this.currentCard = this.currentDeck.shift();
+        this.wildcardControl.turnCounter++;
+
+        // Determine if we should draw a wildcard based on intelligent distribution
+        const shouldDrawWildcard = this.shouldDrawWildcard();
+
+        if (shouldDrawWildcard && this.wildcardPool && this.wildcardPool.length > 0) {
+            // Draw a wildcard with better randomization
+            const randomIndex = Math.floor(Math.random() * this.wildcardPool.length);
+            this.currentCard = this.wildcardPool.splice(randomIndex, 1)[0];
+            this.updateWildcardControl(true);
+            this.showToast(`🃏 Wildcard drawn! (${this.wildcardControl.playerWildcardCount[this.currentPlayer].thisLevel}/${this.wildcardControl.playerWildcardCount[this.currentPlayer].maxPerLevel})`, 'info');
+        } else if (this.currentDeck.length > 0) {
+            // Draw a regular card with proper randomization
+            const randomIndex = Math.floor(Math.random() * this.currentDeck.length);
+            this.currentCard = this.currentDeck.splice(randomIndex, 1)[0];
+            this.updateWildcardControl(false);
+        } else if (this.wildcardPool && this.wildcardPool.length > 0) {
+            // Only wildcards left, draw one
+            const randomIndex = Math.floor(Math.random() * this.wildcardPool.length);
+            this.currentCard = this.wildcardPool.splice(randomIndex, 1)[0];
+            this.updateWildcardControl(true);
+        } else {
+            this.showToast('No more cards available!', 'warning');
+            this.isAnimating = false;
+            return;
+        }
+
         this.isDareCard = false;
-        
+
+        // Add card to used cards list to prevent repeats
+        if (this.currentCard) {
+            this.usedCards[this.currentLevel].push(this.currentCard.id);
+        }
+
         // Enhanced haptic feedback
         if ('vibrate' in navigator) {
             navigator.vibrate([50, 30, 50]);
         }
-        
+
         // Play sound effect (if available)
         this.playSound('cardFlip');
-        
+
         this.displayCurrentCard();
         this.updateUI();
         this.setRandomCardBackImage();
-        
+
         // Update deck with smooth animation
         this.animateDeckUpdate();
-        
+
         setTimeout(() => {
             this.isAnimating = false;
         }, 600);
+    }
+
+    shouldDrawWildcard() {
+        const control = this.wildcardControl;
+
+        // No wildcards available
+        if (!this.wildcardPool || this.wildcardPool.length === 0) {
+            return false;
+        }
+
+        // Check if player has reached their level limit
+        if (control.playerWildcardCount[this.currentPlayer].thisLevel >= control.playerWildcardCount[this.currentPlayer].maxPerLevel) {
+            return false;
+        }
+
+        // Check for consecutive wildcard limit
+        if (control.consecutiveWildcards >= control.maxConsecutiveWildcards) {
+            return false;
+        }
+
+        // Check cooldown period
+        const turnsSinceLastWildcard = control.turnCounter - control.lastWildcardTurn;
+        if (turnsSinceLastWildcard < control.wildcardCooldown) {
+            return false;
+        }
+
+        // Prevent same player from getting consecutive wildcards
+        if (control.lastWildcardDrawnBy === this.currentPlayer && control.consecutiveWildcards > 0) {
+            return false;
+        }
+
+        // Balance between players - if one player has significantly more wildcards, reduce their chances
+        const player1Count = control.playerWildcardCount[1].thisLevel;
+        const player2Count = control.playerWildcardCount[2].thisLevel;
+        const imbalance = Math.abs(player1Count - player2Count);
+
+        let adjustedFrequency = control.wildcardFrequency;
+        if (imbalance >= 2) {
+            // If current player has more wildcards, reduce their frequency
+            const currentPlayerCount = control.playerWildcardCount[this.currentPlayer].thisLevel;
+            const opponentCount = control.playerWildcardCount[this.currentPlayer === 1 ? 2 : 1].thisLevel;
+
+            if (currentPlayerCount > opponentCount) {
+                adjustedFrequency = control.wildcardFrequency * 0.3; // Reduce to 30% of normal chance
+            } else {
+                adjustedFrequency = control.wildcardFrequency * 1.5; // Increase chance to balance
+            }
+        }
+
+        // Random chance based on adjusted frequency
+        return Math.random() < adjustedFrequency;
+    }
+
+    updateWildcardControl(drewWildcard) {
+        const control = this.wildcardControl;
+
+        if (drewWildcard) {
+            control.lastWildcardDrawnBy = this.currentPlayer;
+            control.lastWildcardTurn = control.turnCounter;
+            control.consecutiveWildcards++;
+            control.playerWildcardCount[this.currentPlayer].thisLevel++;
+        } else {
+            // Only reset consecutive count, not the player tracking
+            control.consecutiveWildcards = 0;
+        }
     }
 
     animateDeckUpdate() {
@@ -679,8 +859,16 @@ class CardDeck {
                 this.playSound('success');
                 
                 if (pointsAwarded > 0) {
-                    this.showToast(`+${pointsAwarded} points! ${this.players[this.currentPlayer === 1 ? 2 : 1].name}'s turn!`, 'success');
                     this.showScoreAnimation(pointsAwarded);
+                }
+
+                // Check for level completion
+                const currentTarget = this.levelConfig[this.currentLevel].target;
+                if (this.players[this.currentPlayer].score >= currentTarget) {
+                    this.completeLevelRound(this.currentPlayer);
+                    return; // Exit early, level completion will handle everything
+                } else if (pointsAwarded > 0) {
+                    this.showToast(`+${pointsAwarded} points! ${this.players[this.currentPlayer === 1 ? 2 : 1].name}'s turn!`, 'success');
                 }
             }
             
@@ -960,6 +1148,143 @@ class CardDeck {
         this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
     }
 
+    completeLevelRound(winnerId) {
+        // Award round win
+        this.players[winnerId].roundWins++;
+
+        // Show level complete modal
+        this.showLevelCompleteModal(winnerId);
+
+        // Note: Score reset now handled in proceedToNextLevel() to avoid timing issues
+
+        // Save persistent data
+        this.saveGameState();
+        this.savePersistentProgress();
+    }
+
+    showLevelCompleteModal(winnerId) {
+        const modal = document.getElementById('level-complete-modal');
+        const winnerName = document.getElementById('round-winner-name');
+        const completedLevelTitle = document.getElementById('completed-level-title');
+        const nextLevelInfo = document.getElementById('next-level-info');
+        const nextLevelTitle = document.getElementById('next-level-title');
+        const nextLevelSubtitle = document.getElementById('next-level-subtitle');
+
+        modal.style.animation = 'modalSlideIn 0.5s ease';
+
+        // Set winner info
+        winnerName.textContent = `🎉 ${this.players[winnerId].name} Wins Level ${this.currentLevel}! 🎉`;
+
+        // Set completed level info
+        const levelName = this.levelConfig[this.currentLevel].name;
+        completedLevelTitle.textContent = `Level ${this.currentLevel} - ${levelName}`;
+
+        // Set next level info or final completion
+        if (this.currentLevel < 3) {
+            const nextLevel = this.currentLevel + 1;
+            const nextLevelName = this.levelConfig[nextLevel].name;
+            const nextTarget = this.levelConfig[nextLevel].target;
+
+            nextLevelTitle.textContent = `Next: Level ${nextLevel} - ${nextLevelName}`;
+            nextLevelSubtitle.textContent = `Target: ${nextTarget} points`;
+            nextLevelInfo.style.display = 'block';
+
+            document.getElementById('continue-next-level').style.display = 'block';
+            document.getElementById('continue-next-level').textContent = 'Continue to Next Level';
+        } else {
+            // All levels completed
+            nextLevelInfo.style.display = 'none';
+            document.getElementById('continue-next-level').style.display = 'block';
+            document.getElementById('continue-next-level').textContent = 'Start New Game (Level 1)';
+        }
+
+        // Set round wins display
+        document.getElementById('level-final-player-1-name').textContent = this.players[1].name;
+        document.getElementById('level-final-player-1-rounds').textContent = this.players[1].roundWins;
+        document.getElementById('level-final-player-2-name').textContent = this.players[2].name;
+        document.getElementById('level-final-player-2-rounds').textContent = this.players[2].roundWins;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('active');
+
+        // Celebration effects
+        this.createConfettiEffect();
+        this.playSound('success');
+
+        if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200, 100, 300]);
+        }
+    }
+
+    proceedToNextLevel() {
+        const previousLevel = this.currentLevel;
+
+        if (this.currentLevel < 3) {
+            this.currentLevel++;
+        } else {
+            // All levels completed, restart from level 1
+            this.currentLevel = 1;
+            this.gameNumber++;
+        }
+
+        console.log(`Progressing from Level ${previousLevel} to Level ${this.currentLevel}`);
+
+        // Close modal
+        document.getElementById('level-complete-modal').classList.add('hidden');
+        document.getElementById('level-complete-modal').classList.remove('active');
+
+        // Reset scores and streaks for new level (but keep round wins)
+        this.players[1].score = 0;
+        this.players[2].score = 0;
+        this.players[1].streak = 0;
+        this.players[2].streak = 0;
+
+        // CRITICAL FIX: Clear used cards for the new level to ensure fresh deck
+        this.usedCards[this.currentLevel] = [];
+        console.log(`Cleared used cards for Level ${this.currentLevel}`);
+
+        // Load new level cards with enhanced error handling
+        this.loadCards().then(() => {
+            console.log(`Successfully loaded Level ${this.currentLevel} cards:`, {
+                regularCards: this.regularCards?.length || 0,
+                wildcardPool: this.wildcardPool?.length || 0,
+                currentDeck: this.currentDeck?.length || 0
+            });
+
+            // Clear current card and ensure clean state
+            this.currentCard = null;
+            this.isDareCard = false;
+            this.isAnimating = false; // Ensure animations aren't blocking
+            this.displayCurrentCard();
+
+            // Reset game state for new level
+            this.currentPlayer = this.startingPlayer;
+            this.pendingDareForPlayer = null;
+
+            // Update UI
+            this.updateUI();
+            this.updatePlayerDisplay();
+            this.setRandomCardBackImage();
+
+            // Clear completed pile
+            const completedPile = document.getElementById('completed-cards-pile');
+            completedPile.innerHTML = '';
+            document.getElementById('empty-completed').classList.remove('hidden');
+
+            // Save state after successful level transition
+            this.savePersistentProgress();
+            this.saveGameState();
+
+            // Show level start message
+            const levelName = this.levelConfig[this.currentLevel].name;
+            const target = this.levelConfig[this.currentLevel].target;
+            this.showToast(`🎊 Level ${this.currentLevel} - ${levelName} started! Target: ${target} points 🎊`, 'success');
+        }).catch(error => {
+            console.error('Error loading new level cards:', error);
+            this.showToast('Error loading new level. Please refresh the page.', 'error');
+        });
+    }
+
     addToCompletedStack(card, action) {
         const completedPile = document.getElementById('completed-cards-pile');
         const emptyState = document.getElementById('empty-completed');
@@ -1170,22 +1495,39 @@ class CardDeck {
         this.players[1].daresCompleted = 0;
         this.players[1].wildcards = [];
         this.players[1].streak = 0;
-        
+        this.players[1].roundWins = 0; // Reset round wins too
+
         this.players[2].score = 0;
         this.players[2].cardsCompleted = 0;
         this.players[2].cardsSkipped = 0;
         this.players[2].daresCompleted = 0;
         this.players[2].wildcards = [];
         this.players[2].streak = 0;
-        
+        this.players[2].roundWins = 0; // Reset round wins too
+
         this.gameNumber = 1;
+        this.currentLevel = 1; // Reset to level 1
         this.startingPlayer = 1;
         this.currentPlayer = 1;
         this.pendingDareForPlayer = null;
-        
-        this.updatePlayerDisplay();
-        this.saveGameState();
-        this.showToast('All scores and stats reset!', 'success');
+
+        // Clear used cards tracking
+        this.usedCards = {
+            1: [],
+            2: [],
+            3: []
+        };
+
+        // Clear persistent progress
+        localStorage.removeItem('cardDeckPersistentProgress');
+
+        // Reload level 1 cards
+        this.loadCards().then(() => {
+            this.updatePlayerDisplay();
+            this.updateUI();
+            this.saveGameState();
+            this.showToast('All progress reset! Back to Level 1', 'success');
+        });
     }
 
     endGame() {
@@ -1277,15 +1619,12 @@ class CardDeck {
         this.showToast('Shuffling decks...', 'info');
         
         // Fisher-Yates shuffle with visual feedback
-        for (let i = this.currentDeck.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [this.currentDeck[i], this.currentDeck[j]] = [this.currentDeck[j], this.currentDeck[i]];
-        }
-        
-        // Shuffle dare deck
-        for (let i = this.currentDareDeck.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [this.currentDareDeck[i], this.currentDareDeck[j]] = [this.currentDareDeck[j], this.currentDareDeck[i]];
+        this.shuffleArray(this.currentDeck);
+        this.shuffleArray(this.currentDareDeck);
+
+        // Also shuffle wildcard pool if available
+        if (this.wildcardPool && this.wildcardPool.length > 0) {
+            this.shuffleArray(this.wildcardPool);
         }
         
         setTimeout(() => {
@@ -1322,6 +1661,10 @@ class CardDeck {
         // Update wildcard counts
         document.getElementById('player-1-wildcard-count').textContent = this.players[1].wildcards.length;
         document.getElementById('player-2-wildcard-count').textContent = this.players[2].wildcards.length;
+
+        // Update round wins
+        document.getElementById('player-1-round-wins').textContent = this.players[1].roundWins;
+        document.getElementById('player-2-round-wins').textContent = this.players[2].roundWins;
         
         // Update current turn indicator with enhanced styling
         const player1Card = document.getElementById('player-1-card');
@@ -1336,6 +1679,9 @@ class CardDeck {
         // Update game info
         document.getElementById('current-player').textContent = this.players[this.currentPlayer].name;
         document.getElementById('game-number').textContent = this.gameNumber;
+
+        // Update level progress display
+        this.updateLevelProgressDisplay();
     }
 
     updateStreakDisplay() {
@@ -1366,12 +1712,29 @@ class CardDeck {
         }
     }
 
+    updateLevelProgressDisplay() {
+        // Update current level display
+        document.getElementById('current-level').textContent = this.currentLevel;
+        document.getElementById('level-difficulty').textContent = this.levelConfig[this.currentLevel].name;
+        document.getElementById('target-score').textContent = `Target: ${this.levelConfig[this.currentLevel].target} pts`;
+
+        // Update level progress bar
+        const maxScore = Math.max(this.players[1].score, this.players[2].score);
+        const target = this.levelConfig[this.currentLevel].target;
+        const progressPercentage = Math.min((maxScore / target) * 100, 100);
+
+        document.getElementById('level-progress-fill').style.width = `${progressPercentage}%`;
+        document.getElementById('progress-text').textContent = `${maxScore} / ${target}`;
+    }
+
     updateUI() {
         // Update progress bar with smooth animation
-        const total = this.cards.length;
+        const regularCardsTotal = this.regularCards ? this.regularCards.length : 0;
+        const wildcardTotal = this.wildcardPool ? this.wildcardPool.length : 0;
+        const total = regularCardsTotal + wildcardTotal;
         const completed = this.completedCards.length;
         const progress = total > 0 ? (completed / total) * 100 : 0;
-        
+
         const progressFill = document.getElementById('progress-fill');
         progressFill.style.width = `${progress}%`;
         
@@ -1415,7 +1778,7 @@ class CardDeck {
 
     // Enhanced Modal and Form Management (keeping all existing functionality)
     setupModalControls() {
-        const modals = ['card-modal', 'dare-card-modal', 'manage-modal', 'manage-dare-modal', 'wildcard-collection-modal'];
+        const modals = ['card-modal', 'dare-card-modal', 'manage-modal', 'manage-dare-modal', 'wildcard-collection-modal', 'level-complete-modal'];
         
         modals.forEach(modalId => {
             const modal = document.getElementById(modalId);
@@ -2010,6 +2373,7 @@ class CardDeck {
             currentPlayer: this.currentPlayer,
             startingPlayer: this.startingPlayer,
             pendingDareForPlayer: this.pendingDareForPlayer,
+            currentLevel: this.currentLevel,
             players: this.players,
             gameStats: this.gameStats,
             currentDeck: this.currentDeck.map(c => c.id),
@@ -2023,11 +2387,13 @@ class CardDeck {
             currentCard: this.currentCard ? {
                 id: this.currentCard.id,
                 isDare: this.isDareCard
-            } : null
+            } : null,
+            wildcardControl: this.wildcardControl,
+            wildcardPool: this.wildcardPool ? this.wildcardPool.map(c => c.id) : []
         };
-        
+
         localStorage.setItem('cardDeckGameState', JSON.stringify(gameState));
-        
+
         // Also save to server (non-blocking)
         fetch('/api/game/state', {
             method: 'POST',
@@ -2038,6 +2404,50 @@ class CardDeck {
         });
     }
 
+    savePersistentProgress() {
+        // Save persistent data that survives game resets
+        const persistentData = {
+            players: {
+                1: {
+                    name: this.players[1].name,
+                    roundWins: this.players[1].roundWins
+                },
+                2: {
+                    name: this.players[2].name,
+                    roundWins: this.players[2].roundWins
+                }
+            },
+            usedCards: this.usedCards
+        };
+
+        localStorage.setItem('cardDeckPersistentProgress', JSON.stringify(persistentData));
+    }
+
+    loadPersistentProgress() {
+        const saved = localStorage.getItem('cardDeckPersistentProgress');
+        if (saved) {
+            try {
+                const persistentData = JSON.parse(saved);
+
+                // Load round wins and names
+                if (persistentData.players) {
+                    this.players[1].name = persistentData.players[1]?.name || 'Player 1';
+                    this.players[1].roundWins = persistentData.players[1]?.roundWins || 0;
+                    this.players[2].name = persistentData.players[2]?.name || 'Player 2';
+                    this.players[2].roundWins = persistentData.players[2]?.roundWins || 0;
+                }
+
+                // Load used cards tracking
+                if (persistentData.usedCards) {
+                    this.usedCards = { ...this.usedCards, ...persistentData.usedCards };
+                }
+
+            } catch (error) {
+                console.error('Error loading persistent progress:', error);
+            }
+        }
+    }
+
     loadGameState() {
         const saved = localStorage.getItem('cardDeckGameState');
         if (saved) {
@@ -2046,9 +2456,15 @@ class CardDeck {
                 this.gameNumber = gameState.gameNumber || 1;
                 this.currentPlayer = gameState.currentPlayer || 1;
                 this.startingPlayer = gameState.startingPlayer || 1;
+                this.currentLevel = gameState.currentLevel || 1;
                 this.pendingDareForPlayer = gameState.pendingDareForPlayer || null;
                 this.players = gameState.players || this.players;
                 this.gameStats = gameState.gameStats || this.gameStats;
+
+                // Restore wildcard control if available
+                if (gameState.wildcardControl) {
+                    this.wildcardControl = { ...this.wildcardControl, ...gameState.wildcardControl };
+                }
             } catch (error) {
                 console.error('Error loading game state:', error);
                 this.showToast('Error loading saved game state', 'warning');
@@ -2088,6 +2504,15 @@ class CardDeck {
         setTimeout(() => {
             element.style.animation = '';
         }, 600);
+    }
+
+    // Fisher-Yates shuffle algorithm for proper randomization
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
 
     playSound(soundType) {
@@ -2175,7 +2600,8 @@ class CardDeck {
             'dare': '🎯 Dare',
             'never_ever': '🚫 Never Ever',
             'kink': '🔥 Kink',
-            'wild_card': '🃏 Wild Card'
+            'wild_card': '🃏 Wild Card',
+            'get_to_know_me': '🧠 Get to Know Me'
         };
         return names[type] || 'General';
     }
@@ -2186,7 +2612,8 @@ class CardDeck {
             'dare': '#FF9800',
             'never_ever': '#2196F3',
             'kink': '#E91E63',
-            'wild_card': '#9C27B0'
+            'wild_card': '#9C27B0',
+            'get_to_know_me': '#FF9800'
         };
         return colors[type] || '#607D8B';
     }
@@ -2415,7 +2842,9 @@ document.addEventListener('DOMContentLoaded', () => {
     cardDeck = new CardDeck();
 });
 
-// Enhanced Service Worker registration
+// Service Worker registration - disabled until sw.js is created
+// Uncomment when service worker is implemented
+/*
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').then(() => {
@@ -2425,3 +2854,4 @@ if ('serviceWorker' in navigator) {
         });
     });
 }
+*/
