@@ -27,6 +27,30 @@ def load_cards():
             return {"cards": []}
     return {"cards": []}
 
+# Load level-specific cards from separate JSON files
+def load_level_cards(level):
+    level_files = {
+        1: 'cards/easy_cards.json',
+        2: 'cards/medium_cards.json',
+        3: 'cards/hard_cards.json'
+    }
+
+    cards_file = Path(level_files.get(level, 'cards/easy_cards.json'))
+    if cards_file.exists():
+        try:
+            with open(cards_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                logger.info(f"Loaded {len(data.get('cards', []))} level {level} cards")
+                return data
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.error(f"Error loading level {level} cards: {e}")
+            return {"cards": []}
+    else:
+        # Fallback to main cards.json if level file doesn't exist
+        logger.warning(f"Level {level} cards file not found, falling back to main deck")
+        return load_cards()
+    return {"cards": []}
+
 # Load dare cards from JSON file (separate from main deck)
 def load_dare_cards():
     dare_cards_file = Path('dare_cards.json')
@@ -99,6 +123,34 @@ def get_shuffled_cards():
     except Exception as e:
         logger.error(f"Error shuffling cards: {e}")
         return jsonify({'error': 'Failed to shuffle cards'}), 500
+
+@app.route('/api/cards/level/<int:level>', methods=['GET'])
+def get_level_cards(level):
+    """Get all cards for a specific level"""
+    try:
+        if level not in [1, 2, 3]:
+            return jsonify({'error': 'Invalid level. Must be 1, 2, or 3'}), 400
+
+        cards_data = load_level_cards(level)
+        return jsonify(cards_data)
+    except Exception as e:
+        logger.error(f"Error getting level {level} cards: {e}")
+        return jsonify({'error': f'Failed to load level {level} cards'}), 500
+
+@app.route('/api/cards/level/<int:level>/shuffle', methods=['GET'])
+def get_shuffled_level_cards(level):
+    """Get shuffled deck of level-specific cards"""
+    try:
+        if level not in [1, 2, 3]:
+            return jsonify({'error': 'Invalid level. Must be 1, 2, or 3'}), 400
+
+        cards_data = load_level_cards(level)
+        cards = cards_data.get('cards', [])
+        shuffled_cards = random.sample(cards, len(cards)) if cards else []
+        return jsonify({'cards': shuffled_cards, 'level': level})
+    except Exception as e:
+        logger.error(f"Error shuffling level {level} cards: {e}")
+        return jsonify({'error': f'Failed to shuffle level {level} cards'}), 500
 
 @app.route('/api/dare-cards/shuffle', methods=['GET'])
 def get_shuffled_dare_cards():
